@@ -1,29 +1,18 @@
-# Foobar
+# HandGP
 
-Foobar is a Python library for dealing with word pluralization.
+Predicting synergism using Gaussian processes and Hand principle.\\
 
-## Installation
+## Citation
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install foobar.
+The underlying algorithm is based on the 2021 paper:
+```TeX
+@article{shapovalova2021,
+  title={Non-parametric synergy modeling with Gaussian processes},
+  author={Shapovalova, Yuliya and Heskes, Tom and Dijkstra, Tjeerd},
+  journal={},
+  year={2021}
+}
 
-```bash
-pip install foobar
-```
+## Dependencies
 
-## Usage
-
-```python
-import foobar
-
-foobar.pluralize('word') # returns 'words'
-foobar.pluralize('goose') # returns 'geese'
-foobar.singularize('phenomena') # returns 'phenomenon'
-```
-
-## Contributing
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
-
-Please make sure to update tests as appropriate.
-
-## License
-[MIT](https://choosealicense.com/licenses/mit/)
+This work depends on the [GPflow project](https://www.gpflow.org/) and [TensorFlow](https://www.tensorflow.org/) as well as the numpy, scipy, matplotlib.
