@@ -5,7 +5,7 @@ Predicting synergism using Gaussian processes and Hand principle.\\
 ## Citation
 
 The underlying algorithm is based on the 2021 paper:
-```TeX
+
 @article{shapovalova2021,
   title={Non-parametric synergy modeling with Gaussian processes},
   author={Shapovalova, Yuliya and Heskes, Tom and Dijkstra, Tjeerd},
