@@ -23,7 +23,7 @@ from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import pymc3
 
-from utilities import (K_new_kernel, compute_prior_hyperparameters, fit_1d_model, predict_in_observations, fit_Hand, y_exp_Hand, y_exp, fit_3d_model, find_nearest, K_log, K_multiplicative)
+from utilities import (K_new_kernel, compute_prior_hyperparameters, fit_1d_model, predict_in_observations,fit_Hand, y_exp_Hand, y_exp, fit_3d_model, find_nearest, K_log, K_multiplicative)
 
 f64 = gpflow.utilities.to_default_float
 
@@ -42,11 +42,10 @@ def trapezoidal_area(xyz):
 
 N=5000 # number splits in Hand model
 
-df = pd.read_csv('GrecoSimulatedData.csv', sep=';')
+df = pd.read_csv('../data/GrecoSimulatedData.csv', sep=';')
 
 print(df)
 
-exit()
 
 X = np.linspace(0,50,10)[:, None]
 #k = K_multiplicative()
@@ -94,11 +93,6 @@ Effect_A = data[data['Dose_B']==0]['Effect'].to_numpy().reshape(-1,1).astype(flo
 
 Dose_B = data[data['Dose_A']==0]['Dose_B'].to_numpy().reshape(-1,1).astype(float)
 Effect_B = data[data['Dose_A']==0]['Effect'].to_numpy().reshape(-1,1).astype(float)
-
-print(X1)
-print(Y1)
-exit()
-
 
 #l_init = np.linspace(0.01, 20.0, 100)
 #var_init = np.linspace(0.01, 100.0, 100)
@@ -153,12 +147,6 @@ opt_logs = opt.minimize(m.training_loss,
 #m.kernel.variance.prior = tfp.distributions.Gamma(np.float64(alpha_var), np.float64(beta_var))
 #m.likelihood.variance.prior = prior_variance_likelihood
 
-print_summary(m)
-
-print(Lik_full)
-print(np.nanmin(Lik_full))
-exit()
-
 ## generate test points for prediction
 xx = np.linspace(-0.1, 20.1, 100).reshape(100, 1)  # test points must be of shape (N, D)
 
@@ -185,10 +173,6 @@ plt.fill_between(
 plt.plot(xx, samples[:, :, 0].numpy().T, "C0", linewidth=0.5)
 _ = plt.xlim(-0.1, 20.1)
 plt.savefig('test.png')
-
-exit()
-
-
 
 #[l1_init, l2_init] = np.meshgrid(np.linspace(Dose_AB[9,0]-Dose_AB[0,0], (np.max(Dose_AB[:,0])-np.min(Dose_AB[:,0])), 10), np.linspace(Dose_AB[9,1]-Dose_AB[0,1],  (np.max(Dose_AB[:,1])-np.min(Dose_AB[:,1])), 10))
 [l1_init, l2_init] = np.meshgrid(np.linspace(0.01, 2.0, 10), np.linspace(0.01,  2.0, 10))

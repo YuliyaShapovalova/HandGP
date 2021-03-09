@@ -17,4 +17,6 @@ The underlying algorithm is based on the 2021 paper:
 
 This work depends on the [GPflow project](https://www.gpflow.org/) and [TensorFlow](https://www.tensorflow.org/) as well as the numpy, scipy, matplotlib.\\
 
-I've tested the demos with GPflow v.2.0.0, TensorFlow v2.1.0 and TensorFlow probability v0.9.0.
+For running experiments with MuSyC model we use [synergy](https://pypi.org/project/synergy/)
+
+Demos work with GPflow v.2.0.0, TensorFlow v2.1.0 and TensorFlow probability v0.9.0.
