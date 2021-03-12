@@ -1,16 +1,16 @@
 # HandGP
 
-Predicting synergism using Gaussian processes and Hand principle.\\
+Predicting synergism using Gaussian processes and Hand principle.
 
 ## Citation
 
-The underlying algorithm is based on the 2021 paper:
+This is supplementary code for the 2021 paper:
 
-@article{shapovalova2021,
-  title={Non-parametric synergy modeling with Gaussian processes},
-  author={Shapovalova, Yuliya and Heskes, Tom and Dijkstra, Tjeerd},
-  journal={},
-  year={2021}
+@article{shapovalova2021,\\
+  title={Non-parametric synergy modeling with Gaussian processes},\\
+  author={Shapovalova, Yuliya and Heskes, Tom and Dijkstra, Tjeerd},\\
+  journal={},\\
+  year={2021}\\
 }
 
 ## Dependencies
@@ -20,3 +20,18 @@ This work depends on the [GPflow project](https://www.gpflow.org/) and [TensorFl
 For running experiments with MuSyC model we use [synergy](https://pypi.org/project/synergy/) library.
 
 Demos work with GPflow v.2.0.0, TensorFlow v2.1.0 and TensorFlow probability v0.9.0.
+
+## HandGP
+Reproduces experiments with HandGP model.
+
+
+## MuSyC
+Reproduces experiments with MuSyC model. Code is based on the library synergy. 
+
+## MedianEffectModel
+Reproduces results from ChouTalalay paper. 
+
+
+## Notebooks
+
+Demos. 
