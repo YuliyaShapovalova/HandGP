@@ -1,30 +1,28 @@
 import numpy as np
-import tensorflow_probability as tfp
-from tensorflow_probability import mcmc
-import pandas as pd
+from numpy.linalg import inv
 from bisect import bisect_left
 from scipy import special
 from scipy.special import erf
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from numpy.linalg import inv
-import tensorflow as tf
 import scipy.linalg
+from scipy.stats.distributions import chi2
+from scipy.interpolate import interp1d
+import pandas as pd
+import tensorflow as tf
+import tensorflow_probability as tfp
 import gpflow
 from gpflow.ci_utils import ci_niter
 from gpflow import set_trainable
-from scipy.stats.distributions import chi2
-import pandas as pd
-from matplotlib import cm
-from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from gpflow.utilities import print_summary, positive
-np.set_printoptions(suppress=True)
+from gpflow import set_trainable
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
-from gpflow import set_trainable
-from scipy.interpolate import interp1d
-from utilities import (trapezoidal_area, compute_prior_hyperparameters, trapezoidal_area, fit_1d_model, predict_in_observations, fit_Hand, y_exp_Hand, y_exp, fit_3d_model, find_nearest, K_log, K_multiplicative)
 import pymc3
+
+np.set_printoptions(suppress=True)
+
+from utilities import (compute_prior_hyperparameters, trapezoidal_area, predict_in_observations, fit_Hand, K_multiplicative)
 
 f64 = gpflow.utilities.to_default_float
 
@@ -58,10 +56,7 @@ eff_max_a = np.max(Effect_A)
 eff_max_b = np.max(Effect_B)
 eff_max = np.max([eff_max_a, eff_max_b])
 
-print(eff_max)
-
 alpha_var, beta_var = compute_prior_hyperparameters(eff_max, 0.0001*eff_max)
-
 
 zeros_A = np.zeros((Dose_A.shape))
 zeros_B = np.zeros((Dose_B.shape))
@@ -76,8 +71,7 @@ Dose_AB = np.concatenate((Dose_AB, Dose_AB_mono, Dose_AB_mono, Dose_AB_mono, Dos
 Effect = np.concatenate((Effect.reshape(-1,1), Effect_mono.reshape(-1,1), Effect_mono.reshape(-1,1), Effect_mono.reshape(-1,1), Effect_mono.reshape(-1,1)),  axis=0)
 
 [l1_init, l2_init] = np.meshgrid(np.linspace(0.1, np.max(Dose_A), 10), np.linspace(10.0,  np.max(Dose_B), 10))
-print('l1_init', l1_init)
-print('l2_init', l2_init)
+
 l1_init = l1_init.reshape(-1,1)
 l2_init = l2_init.reshape(-1,1)
 Lik_null = np.zeros((100,1))
@@ -113,7 +107,7 @@ for i in range(0,100):
         opt = gpflow.optimizers.Scipy()
 
         opt_logs = opt.minimize(m.training_loss, m.trainable_variables, options=dict(maxiter=100))
-        print_summary(m)
+        #print_summary(m)
 
         Lik_full[i,0] = np.asarray(m.training_loss())
         var_init[i,0] = np.asarray(m.kernel.variance_da.value())
@@ -121,8 +115,6 @@ for i in range(0,100):
         Lik_full[i,0] = 'NaN'
         print('Cholesky was not successful')
 
-
-#index = np.where(Lik_full == np.nanmax(Lik_full))[0][0]
 index = np.where(Lik_full == np.nanmin(Lik_full))[0][0]
 
 init_lengthscale_da = l1_init[index,0]
@@ -185,14 +177,11 @@ plt.fill_between(
     color="purple",
     alpha=0.2
 )
-#plt.ylim((0.0, 1.0))
-#plt.title('Monotherapeutic slice of the GP surface', fontsize=20)
-#plt.xlabel("$Dose$", fontsize=60), plt.ylabel("Effect", fontsize=60)
 plt.xlabel('$x_1$', fontsize=20)
 plt.ylabel('Response', fontsize=20)
 plt.ylim(0.0, 1.1)
 plt.tick_params(axis='both', which='major', labelsize=20)
-plt.savefig('figures/'+drug_name+'_DrugA_2drugs'+'.png')
+plt.savefig('figures/ChouTalalay/'+drug_name+'_DrugA_2drugs'+'.png')
 
 ## plot
 plt.figure(figsize=(12, 6))
@@ -205,13 +194,11 @@ plt.fill_between(
     color="purple",
     alpha=0.2
 )
-#plt.title('Monotherapeutic slice of the GP surface', fontsize=20)
-#plt.xlabel("$Dose$", fontsize=60), plt.ylabel("Effect", fontsize=60)
 plt.xlabel('$x_2$', fontsize=20)
 plt.ylabel('Response', fontsize=20)
 plt.ylim(0.0, 1.1)
 plt.tick_params(axis='both', which='major', labelsize=20)
-plt.savefig('figures/'+drug_name+'_DrugB_2drugs'+'.png')
+plt.savefig('figures/ChouTalalay/'+drug_name+'_DrugB_2drugs'+'.png')
 
 
 dim2_A = mean2.iloc[0].to_numpy()
@@ -252,8 +239,7 @@ Volume_full = trapezoidal_area(xyz_full)
 xyz_null = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), Y_expected_Hand.reshape(-1,1)),axis=1)
 Volume_null = trapezoidal_area(xyz_null)
 
-
-print(Volume_null-Volume_full)
+#print(Volume_null-Volume_full)
 
 xv, yv = np.meshgrid(X1, X2)
 
@@ -278,12 +264,12 @@ for t in cbar.ax.get_yticklabels():
 plt.xlabel('log($x_1$/$l_1$+1)', fontsize=15)
 plt.ylabel('log($x_2$/$l_2$+1)', fontsize=15)
 #plt.title("Hand-GP estimated surface", fontsize=20)
-plt.savefig('figures/'+str(drug_name)+'_Hand_contour_result'+'.png', bbox_inches = 'tight',
+plt.savefig('figures/ChouTalalay/'+str(drug_name)+'_Hand_contour_result'+'.png', bbox_inches = 'tight',
     pad_inches = 0)
 
 df_surface_null = pd.concat([pd.DataFrame(np.log(Dose_A.flatten()/np.array(m.kernel.lengthscale_da.value())+1).reshape(-1,1)), pd.DataFrame(np.log(Dose_B.flatten()/np.array(m.kernel.lengthscale_db.value())+1).reshape(-1,1)), pd.DataFrame((Y_expected_Hand).flatten().reshape(-1,1))], axis=1)
 df_surface_null.columns = ['DoseA','DoseB', 'effect']
-df_surface_null.to_csv('plotting_GP_ChouTalalay_surface_null.csv',index=False)
+#df_surface_null.to_csv('results/plotting_GP_ChouTalalay_surface_null.csv',index=False)
 
 fig, ax = plt.subplots(figsize=(6,6))
 #ax.set_aspect('equal')
@@ -302,12 +288,12 @@ for t in cbar.ax.get_yticklabels():
 plt.xlabel('log($x_1$/$l_1$+1)', fontsize=15)
 plt.ylabel('log($x_2$/$l_2$+1)', fontsize=15)
 #plt.title("GP estimated surface", fontsize=20)
-plt.savefig('figures/'+str(drug_name)+'_GP_mean'+'.png', bbox_inches = 'tight',
+plt.savefig('figures/ChouTalalay/'+str(drug_name)+'_GP_mean'+'.png', bbox_inches = 'tight',
     pad_inches = 0)
 
 df_surface = pd.concat([pd.DataFrame(np.log(Dose_A.flatten()/np.array(m.kernel.lengthscale_da.value())+1).reshape(-1,1)), pd.DataFrame(np.log(Dose_B.flatten()/np.array(m.kernel.lengthscale_db.value())+1).reshape(-1,1)), pd.DataFrame((mean_full).flatten().reshape(-1,1))], axis=1)
 df_surface.columns = ['DoseA','DoseB', 'effect']
-df_surface.to_csv('plotting_GP_ChouTalalay_surface.csv',index=False)
+#df_surface.to_csv('results/plotting_GP_ChouTalalay_surface.csv',index=False)
 
 fig, ax = plt.subplots(figsize=(6,6))
 #ax.set_aspect('equal')
@@ -326,13 +312,12 @@ for t in cbar.ax.get_yticklabels():
 plt.xlabel('log($x_1$/$l_1$+1)', fontsize=15)
 plt.ylabel('log($x_2$/$l_2$+1)', fontsize=15)
 #plt.title("Hand-GP estimated effect", fontsize=20)
-plt.savefig('figures/'+str(drug_name)+'contour_result'+'.png', bbox_inches = 'tight',
+plt.savefig('figures/ChouTalalay/'+str(drug_name)+'contour_result'+'.png', bbox_inches = 'tight',
     pad_inches = 0)
 
 df_difference = pd.concat([pd.DataFrame(np.log(Dose_A.flatten()/np.array(m.kernel.lengthscale_da.value())+1).reshape(-1,1)), pd.DataFrame(np.log(Dose_B.flatten()/np.array(m.kernel.lengthscale_db.value())+1).reshape(-1,1)), pd.DataFrame((Y_expected_Hand - mean_full).flatten().reshape(-1,1))], axis=1)
 df_difference.columns = ['DoseA','DoseB', 'difference']
-df_difference.to_csv('plotting_GP_ChouTalalay_difference.csv',index=False)
-
+#df_difference.to_csv('results/plotting_GP_ChouTalalay_difference.csv',index=False)
 
 fig, ax = plt.subplots(figsize=(6,6))
 #ax.set_aspect('equal')
@@ -352,12 +337,12 @@ for t in cbar.ax.get_yticklabels():
 plt.xlabel('log($x_1$/$l_1$+1)', fontsize=15)
 plt.ylabel('log($x_2$/$l_2$+1)', fontsize=15)
 #plt.title("GP residuals", fontsize=20)
-plt.savefig('figures/'+str(drug_name)+'_GP_residuals'+'.png', bbox_inches = 'tight',
+plt.savefig('figures/ChouTalalay/'+str(drug_name)+'_GP_residuals'+'.png', bbox_inches = 'tight',
     pad_inches = 0)
 
 df_residuals = pd.concat([pd.DataFrame(np.log(Dose_A.flatten()/np.array(m.kernel.lengthscale_da.value())+1).reshape(-1,1)), pd.DataFrame(np.log(Dose_B.flatten()/np.array(m.kernel.lengthscale_db.value())+1).reshape(-1,1)), pd.DataFrame((mean_full - Effect.reshape(6,6)).flatten().reshape(-1,1))], axis=1)
 df_residuals.columns = ['DoseA','DoseB', 'effect']
-df_residuals.to_csv('plotting_GP_ChouTalalay_residuals.csv',index=False)
+#df_residuals.to_csv('results/plotting_GP_ChouTalalay_residuals.csv',index=False)
 
 data = {'drug1.conc':  [0.0,0.5, 1.0, 1.5, 2.0, 2.5],
         'drug2.conc': [0.0,95.0, 190.0, 285.0, 380.0, 475.0],
@@ -374,7 +359,6 @@ Xnew2 = np.vstack((x, y)).T # Change our input grid to list of coordinates
 
 # Predict the mean and covariance of the GP fit at the test locations
 mean2, Cov2 = m.predict_f(Xnew2)
-print(mean2)
 
 plt.figure(figsize=(12, 6))
 plt.plot(np.asarray(np.sqrt(x**2+y**2)).flatten(), np.asarray(mean2).flatten(), "r", mew=2)
@@ -382,8 +366,7 @@ plt.plot(np.sqrt(df_diagonal['drug1.conc']**2+df_diagonal['drug2.conc']**2), df_
 plt.xlabel('$x_1$+$x_2$', fontsize=20)
 plt.ylabel('Response', fontsize=20)
 plt.tick_params(axis='both', which='major', labelsize=20)
-plt.savefig('figures/'+'ChouTalalay_GP'+'_diagonal'+'.png')
-
+plt.savefig('figures/ChouTalalay/'+'ChouTalalay_GP'+'_diagonal'+'.png')
 
 f1 = interp1d(np.sqrt(X1**2+X2**2).flatten(), np.asarray(np.diag(Y_expected_Hand)).flatten(), kind='quadratic')
 xnew = np.asarray(np.sqrt(df_diagonal['drug1.conc']**2+df_diagonal['drug2.conc']**2)).flatten()
@@ -400,13 +383,11 @@ plt.xlabel('Diagonal combination of the doses', fontsize=20)
 plt.ylabel('Response', fontsize=20)
 plt.tick_params(axis='both', which='major', labelsize=20)
 plt.legend( prop={'size': 20})
-plt.savefig('figures/'+'ChouTalalay_GP'+'_diagonal_null'+'.png', bbox_inches = 'tight',
+plt.savefig('figures/ChouTalalay/'+'ChouTalalay_GP'+'_diagonal_null'+'.png', bbox_inches = 'tight',
     pad_inches = 0)
 
 
 diagonal_difference =  f1(xnew) - np.asarray(mean2).flatten()
-
-print(diagonal_difference)
 
 length_diagonal = len(diagonal_difference)
 xnew = (xnew - xnew.min())/(xnew.max()-xnew.min())
@@ -418,7 +399,7 @@ plt.xlabel('Fractional effect', fontsize=20)
 plt.ylabel('Response', fontsize=20)
 plt.ylim(-0.3,0.3)
 plt.tick_params(axis='both', which='major', labelsize=20)
-plt.savefig('figures/'+'ChouTalalay_GP'+'_diagonal_null_difference'+'.png', bbox_inches = 'tight',
+plt.savefig('figures/ChouTalalay/'+'ChouTalalay_GP'+'_diagonal_null_difference'+'.png', bbox_inches = 'tight',
     pad_inches = 0)
 
 '''
@@ -435,7 +416,7 @@ def plot_samples(step_size, num_leapfrog, samples, parameters, y_axis_label):
    plt.legend(bbox_to_anchor=(1.0, 3.0))
    plt.xlabel("HMC iteration")
    plt.ylabel(y_axis_label)
-   plt.savefig('ChouTalalay_samples'+str(step_size)+str(num_leapfrog)+'.png')
+   plt.savefig('figures/ChouTalalay/ChouTalalay_samples'+str(step_size)+str(num_leapfrog)+'.png')
 
 def plot_samples(step_size, num_leapfrog, samples, parameters, y_axis_label):
     fig, axes = plt.subplots(1, len(param_to_name), figsize=(15, 3), constrained_layout=True)
@@ -443,7 +424,7 @@ def plot_samples(step_size, num_leapfrog, samples, parameters, y_axis_label):
         ax.plot(np.stack(val).flatten())
         ax.set_title(param_to_name[param])
     fig.suptitle(y_axis_label)
-    plt.savefig('ChouTalalay_samples'+str(step_size)+str(num_leapfrog)+'.png')
+    plt.savefig('figures/ChouTalalay/ChouTalalay_samples'+str(step_size)+str(num_leapfrog)+'.png')
 
 def marginal_samples(step_size,leap_frog, samples, parameters, y_axis_label):
     fig, axes = plt.subplots(1, len(param_to_name), figsize=(15, 3), constrained_layout=True)
@@ -451,25 +432,22 @@ def marginal_samples(step_size,leap_frog, samples, parameters, y_axis_label):
         ax.hist(np.stack(val).flatten(), bins=20)
         ax.set_title(param_to_name[param])
     fig.suptitle(y_axis_label)
-    plt.savefig('ChouTalalay_marginal_samples_'+str(step_size)+str(num_leapfrog)+'.png')
+    plt.savefig('figures/ChouTalalay/ChouTalalay_marginal_samples_'+str(step_size)+str(num_leapfrog)+'.png')
     #plt.show()
     res = np.zeros((4, 2))
     for i in range(4):
         hpd = pymc3.stats.hpd(np.asarray(samples[i]))
         res[i,0] = hpd[0]
         res[i,1] = hpd[1]
-    print(res)
     res = np.concatenate((np.array(['l_a', 'l_b', 'var', 'var_lik']).reshape(-1,1), np.array([m.kernel.lengthscale_da.value(),
     m.kernel.lengthscale_db.value(), m.kernel.variance_da.value(), m.likelihood.variance.value()]).reshape(-1,1), res), axis=1)
 
     df = pd.DataFrame(res)
-    print(df)
-
     df.columns = ['parameter','MAP','hpd_l', 'hpd_u']
 
     print(df)
-    df = df.round(5)
-    df.to_csv('ChouTalalay_hyperparameters'+str(step_size)+str(leap_frog)+'.csv')
+    df = df.round(2)
+    df.to_csv('results/ChouTalalay_hyperparameters'+str(step_size)+str(leap_frog)+'.csv')
 
 leapfrog_num_and_step_size = np.stack(np.meshgrid([10.0], [0.05])).T.reshape(-1, 2)
 num_hmc_parameters = leapfrog_num_and_step_size.shape[0]
@@ -478,6 +456,7 @@ for j in range(num_hmc_parameters):
     try:
         num_burnin_steps = ci_niter(1000)
         num_samples = ci_niter(100000)
+        #num_samples = ci_niter(1000)
 
         num_leapfrog, step_size = leapfrog_num_and_step_size[j]
 

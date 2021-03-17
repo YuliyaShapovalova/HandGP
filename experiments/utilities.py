@@ -1,24 +1,27 @@
 import numpy as np
-import tensorflow_probability as tfp
+from numpy.linalg import inv
+import scipy.spatial
 import pandas as pd
 from bisect import bisect_left
 from scipy import special
 from scipy.special import erf
+import numpy as np
+import scipy.spatial
+import scipy.linalg
+from scipy.stats.distributions import chi2
+
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from numpy.linalg import inv
-import tensorflow as tf
-import scipy.linalg
-import gpflow
-from scipy.stats.distributions import chi2
-import pandas as pd
-from matplotlib import cm
-from matplotlib.ticker import LinearLocator, FormatStrFormatter
-from gpflow.utilities import print_summary, positive
-np.set_printoptions(suppress=True)
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
+import tensorflow_probability as tfp
+import tensorflow as tf
+
+import gpflow
+from gpflow.utilities import print_summary, positive
+
+np.set_printoptions(suppress=True)
 
 def compute_prior_hyperparameters(mean, variance):
     # mean equal to variance of empirical standard deviation
@@ -39,128 +42,6 @@ def trapezoidal_area(xyz):
     vol = zavg * np.abs(proj_area) / 6.0
     return vol.sum()
 
-def fit_1d_model(Dose_AB, Effect):
-    [l1_init, l2_init] = np.meshgrid(np.linspace(1.0, (np.max(Dose_AB[:,0])-np.min(Dose_AB[:,0]))/10., 10), np.linspace(1.0,  (np.max(Dose_AB[:,1])-np.min(Dose_AB[:,1]))/10., 10))
-    l1_init = l1_init.reshape(-1,1)
-    l2_init = l2_init.reshape(-1,1)
-    Lik_null = np.zeros((100,1))
-    Lik_full = np.zeros((100,1))
-
-    Lik_A = np.zeros((100,1))
-    Lik_B = np.zeros((100,1))
-
-    data = pd.concat([pd.DataFrame(Dose_AB), pd.DataFrame(Effect)], axis=1)
-    data.columns = ['Dose_A', 'Dose_B', 'Effect']
-
-    Dose_A = data[data['Dose_B']==0]['Dose_A'].to_numpy().reshape(-1,1).astype(float)
-    Effect_A = data[data['Dose_B']==0]['Effect'].to_numpy().reshape(-1,1).astype(float)
-
-    Dose_B = data[data['Dose_A']==0]['Dose_B'].to_numpy().reshape(-1,1).astype(float)
-    Effect_B = data[data['Dose_A']==0]['Effect'].to_numpy().reshape(-1,1).astype(float)
-
-    for i in range(1,100):
-        try:
-            init_lengthscale_da = l1_init[i,0]
-            init_lengthscale_db = l2_init[i,0]
-            init_variance = 1.0
-            init_likelihood_variance = 0.01
-
-            k_A = gpflow.kernels.RBF()
-            m_A = gpflow.models.GPR(data=(Dose_A, Effect_A), kernel=k_A,  mean_function=None)
-            m_A.likelihood.variance.assign(0.01)
-            k_A.lengthscales.assign(init_lengthscale_da)
-            # priors
-            k_A.lengthscale_da.prior = tfp.distributions.InverseGamma(np.float64(8.91924), np.float64(34.5805))
-            #m_full.kernel.lengthscale_db.prior = tfp.distributions.InverseGamma(np.float64(8.91924), np.float64(34.5805))
-            #m_full.kernel.variance_da.prior = tfp.distributions.InverseGamma(np.float64(1.0), np.float64(1.0))
-            opt = gpflow.optimizers.Scipy()
-            opt_logs = opt.minimize(m_A.training_loss,
-                                    m_A.trainable_variables,method='BFGS',
-                                    options=dict(maxiter=100))
-            #print_summary(m_full)
-            Lik_A[i,0] = np.asarray(m_A.training_loss())
-
-            k_B = gpflow.kernels.RBF()
-            m_B = gpflow.models.GPR(data=(Dose_B, Effect_B), kernel=k_B,  mean_function=None)
-            m_B.likelihood.variance.assign(0.01)
-            k_B.lengthscales.assign(init_lengthscale_db)
-            # priors
-            k_B.lengthscale_da.prior = tfp.distributions.InverseGamma(np.float64(8.91924), np.float64(34.5805))
-            #m_full.kernel.lengthscale_db.prior = tfp.distributions.InverseGamma(np.float64(8.91924), np.float64(34.5805))
-            #m_full.kernel.variance_da.prior = tfp.distributions.InverseGamma(np.float64(1.0), np.float64(1.0))
-            opt = gpflow.optimizers.Scipy()
-            opt_logs = opt.minimize(m_B.training_loss,
-                                    m_B.trainable_variables,method='BFGS',
-                                    options=dict(maxiter=100))
-            #print_summary(m_full)
-            Lik_A[i,0] = np.asarray(m_A.training_loss())
-            Lik_B[i,0] = np.asarray(m_B.training_loss())
-
-
-        except:
-            Lik_A[i,0] = 'NaN'
-            Lik_B[i,0] = 'NaN'
-            #print('Cholesky was not successful')
-
-    index_A = np.where(Lik_A == np.nanmin(Lik_A))[0][0]
-    index_B = np.where(Lik_B == np.nanmin(Lik_B))[0][0]
-
-    init_lengthscale_da = l1_init[index_A,0]
-    init_lengthscale_db = l2_init[index_B,0]
-
-    init_likelihood_variance = 0.01
-
-    k_A = gpflow.kernels.RBF()
-    m_A = gpflow.models.GPR(data=(Dose_A, Effect_A), kernel=k_A,  mean_function=None)
-    m_A.likelihood.variance.assign(0.01)
-    k_A.lengthscales.assign(init_lengthscale_da)
-    # priors
-    k_A.lengthscales.prior = tfp.distributions.InverseGamma(np.float64(8.91924), np.float64(34.5805))
-    #m_full.kernel.lengthscale_db.prior = tfp.distributions.InverseGamma(np.float64(8.91924), np.float64(34.5805))
-    #m_full.kernel.variance_da.prior = tfp.distributions.InverseGamma(np.float64(1.0), np.float64(1.0))
-    opt = gpflow.optimizers.Scipy()
-    opt_logs = opt.minimize(m_A.training_loss,
-                            m_A.trainable_variables,method='BFGS',
-                            options=dict(maxiter=100))
-    #print_summary(m_full)
-
-    k_B = gpflow.kernels.RBF()
-    m_B = gpflow.models.GPR(data=(Dose_B, Effect_B), kernel=k_B,  mean_function=None)
-    m_B.likelihood.variance.assign(0.01)
-    k_B.lengthscales.assign(init_lengthscale_db)
-    # priors
-    k_B.lengthscales.prior = tfp.distributions.InverseGamma(np.float64(8.91924), np.float64(34.5805))
-    #m_full.kernel.lengthscale_db.prior = tfp.distributions.InverseGamma(np.float64(8.91924), np.float64(34.5805))
-    #m_full.kernel.variance_da.prior = tfp.distributions.InverseGamma(np.float64(1.0), np.float64(1.0))
-    opt = gpflow.optimizers.Scipy()
-    opt_logs = opt.minimize(m_B.training_loss,
-                            m_B.trainable_variables,method='BFGS',
-                            options=dict(maxiter=100))
-    #print_summary(m_full)
-    Lik_A[i,0] = np.asarray(m_A.training_loss())
-    Lik_B[i,0] = np.asarray(m_B.training_loss())
-
-    num_predict = 3000
-    #[Xi, Xj] = np.meshgrid(X1, X2)
-    xx_A = np.linspace(np.min(Dose_A), np.max(Dose_A),  num_predict).reshape(num_predict, 1)
-    xx_B = np.linspace(np.min(Dose_B), np.max(Dose_B),  num_predict).reshape( num_predict, 1)
-
-    # Predict the mean and covariance of the GP fit at the test locations
-    mean2_A, Cov2_A = m_A.predict_f(xx_A)
-    # Predict the mean and covariance of the GP fit at the test locations
-    mean2_B, Cov2_B = m_B.predict_f(xx_B)
-
-    mean2_A = np.asarray(mean2_A)
-    Cov2_A = np.asarray(Cov2_A)
-
-    mean2_B = np.asarray(mean2_B)
-    Cov2_B = np.asarray(Cov2_B)
-
-
-
-    return  m_A, mean2_A, m_B, mean2_B
-
-
 def predict_in_observations(X1, X2, m_full):
     #[Xi, Xj] = np.meshgrid(X1, X2)
     [Xi, Xj] = np.meshgrid(X1,X2)
@@ -179,8 +60,6 @@ def predict_in_observations(X1, X2, m_full):
 
 def fit_Hand(X1, X2, dim2_A, dim2_B, Dose_A, Dose_B):
     Y_expected_Hand = np.zeros((X1.shape[0],X1.shape[0]))
-    #Y_expected_ab = np.zeros((8,8))
-    #Y_expected_ba = np.zeros((8,8))
 
     xv, yv = np.meshgrid(X1, X2)
 
@@ -193,7 +72,6 @@ def fit_Hand(X1, X2, dim2_A, dim2_B, Dose_A, Dose_B):
     for i in range(0,X1.shape[0]):
         for j in range(0,X1.shape[0]):
             Y_expected_Hand[i,j] = y_exp_Hand(xv[i,j], yv[i,j], mean1, xx1, mean2, xx2)
-
 
     return Y_expected_Hand
 
@@ -322,106 +200,6 @@ def y_exp(a, b, f_a, xx_a, f_b, xx_b):
 
     return(total_effect)
 
-
-def fit_3d_model(Dose_AB, Effect):
-    [l1_init, l2_init] = np.meshgrid(np.linspace(1.0, (np.max(Dose_AB[:,0])-np.min(Dose_AB[:,0]))/10., 10), np.linspace(1.0,  (np.max(Dose_AB[:,1])-np.min(Dose_AB[:,1]))/10., 10))
-    l1_init = l1_init.reshape(-1,1)
-    l2_init = l2_init.reshape(-1,1)
-    Lik_null = np.zeros((100,1))
-    Lik_full = np.zeros((100,1))
-
-    for i in range(1,100):
-        try:
-            init_lengthscale_da = l1_init[i,0]
-            init_lengthscale_db = l2_init[i,0]
-            init_variance = 1.0
-            init_likelihood_variance = 0.01
-
-            k_full = K_multiplicative()
-            m_full = gpflow.models.GPR(data=(Dose_AB, Effect), kernel=k_full,  mean_function=None)
-            m_full.likelihood.variance.assign(0.01)
-            m_full.kernel.lengthscale_da.assign(init_lengthscale_da)
-            m_full.kernel.lengthscale_db.assign(init_lengthscale_db)
-            # priors
-            #m_full.kernel.lengthscale_da.prior = tfp.distributions.InverseGamma(np.float64(8.91924), np.float64(34.5805))
-            #m_full.kernel.lengthscale_db.prior = tfp.distributions.InverseGamma(np.float64(8.91924), np.float64(34.5805))
-
-            m_full.kernel.lengthscale_da.prior = tfp.distributions.Normal(loc = np.float64(15.0),scale=np.float64(2.0))
-            m_full.kernel.lengthscale_db.prior = tfp.distributions.Normal(loc = np.float64(15.0),scale=np.float64(2.0))
-
-
-            m_full.kernel.variance_da.prior = tfp.distributions.InverseGamma(np.float64(1.0), np.float64(1.0))
-            opt = gpflow.optimizers.Scipy()
-            opt_logs = opt.minimize(m_full.training_loss,
-                                    m_full.trainable_variables,method='BFGS',
-                                    options=dict(maxiter=100))
-            #print_summary(m_full)
-            Lik_full[i,0] = np.asarray(m_full.log_likelihood())
-        except:
-            Lik_full[i,0] = 'NaN'
-            #print('Cholesky was not successful')
-
-    #index = np.where(Lik_full == np.nanmin(Lik_full))[0][0]
-    index = np.where(Lik_full == np.nanmax(Lik_full))[0][0]
-
-    init_lengthscale_da = l1_init[index,0]
-    init_lengthscale_db = l2_init[index,0]
-
-    init_likelihood_variance = 0.01
-
-    k_full = K_multiplicative()
-    m_full = gpflow.models.GPR(data=(Dose_AB, Effect), kernel=k_full,  mean_function=None)
-    m_full.likelihood.variance.assign(init_likelihood_variance)
-    m_full.kernel.lengthscale_da.assign(init_lengthscale_da)
-    m_full.kernel.lengthscale_db.assign(init_lengthscale_db)
-    m_full.kernel.variance_da.assign(init_variance)
-    #priors
-    #m_null.kernel.lengthscale_da.prior = tfp.distributions.InverseGamma(np.float64(1.0), np.float64(1.0))
-    #m_null.kernel.lengthscale_db.prior = tfp.distributions.InverseGamma(np.float64(1.0), np.float64(1.0))
-    #m_null.kernel.variance_da.prior = tfp.distributions.InverseGamma(np.float64(1.0), np.float64(1.0))
-
-    #m_full.kernel.lengthscale_da.prior = tfp.distributions.HalfNormal(np.float64(np.max(Dose_AB[:,0])-np.min(Dose_AB[:,0])))
-    #m_full.kernel.lengthscale_db.prior = tfp.distributions.HalfNormal(np.float64(np.max(Dose_AB[:,1])-np.min(Dose_AB[:,1])))
-    #m_full.kernel.lengthscale_da.prior = tfp.distributions.Uniform(low=dfloat(15.0), high=dfloat(70.0))
-    #m_full.kernel.lengthscale_db.prior = tfp.distributions.Uniform(low=dfloat(15.0), high=dfloat(70.0))
-    m_full.kernel.lengthscale_da.prior = tfp.distributions.Normal(loc = np.float64(15.0),scale=np.float64(2.0))
-    m_full.kernel.lengthscale_db.prior = tfp.distributions.Normal(loc = np.float64(15.0),scale=np.float64(2.0))
-
-    m_full.kernel.variance_da.prior = tfp.distributions.HalfNormal(np.float64(1.0))
-
-    #m_full.kernel.lengthscale_da.prior = tfp.distributions.InverseGamma(np.float64(8.91924), np.float64(34.5805))
-    #m_full.kernel.lengthscale_db.prior = tfp.distributions.InverseGamma(np.float64(8.91924), np.float64(34.5805))
-    #m_full.kernel.variance_da.prior = tfp.distributions.InverseGamma(np.float64(1.0), np.float64(1.0))
-
-    #m_null.likelihood.variance.trainable = False
-
-    opt = gpflow.optimizers.Scipy()
-    opt_logs = opt.minimize(m_full.training_loss,
-                        m_full.trainable_variables, method='BFGS',
-                        options=dict(maxiter=1000))
-    print_summary(m_full)
-
-    num_predict = 3000
-    #[Xi, Xj] = np.meshgrid(X1, X2)
-    [Xi, Xj] = np.meshgrid(np.linspace(np.min(Dose_A), np.max(Dose_A), num_predict), np.linspace(np.min(Dose_B), np.max(Dose_B), num_predict))
-    X2 = Dose_AB.copy()
-
-    # We need to augument our test space to be a list of coordinates for input to the GP
-    Xnew2 = np.vstack((Xi.ravel(), Xj.ravel())).T # Change our input grid to list of coordinates
-
-    # Predict the mean and covariance of the GP fit at the test locations
-    mean2_full, Cov2_full = m_full.predict_f(Xnew2)
-
-    mean2_full = np.asarray(mean2_full)
-    Cov2_full = np.asarray(Cov2_full)
-
-    mean_full_est = pd.DataFrame(mean2_full.reshape(Xi.shape))
-    Cov_full_est = pd.DataFrame(Cov2_full.reshape(Xi.shape))
-
-    return m_full, mean_full_est, Cov_full_est
-
-
-
 def find_nearest(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
@@ -438,12 +216,9 @@ def find_nearest_above(my_array, target):
     masked_diff = np.ma.masked_array(diff, mask)
     return masked_diff.argmin()
 
-import numpy as np
-import scipy.spatial
-
-def main(xyz):
-    area_underneath = trapezoidal_area(xyz)
-    print(area_underneath)
+#def main(xyz):
+#    area_underneath = trapezoidal_area(xyz)
+#    print(area_underneath)
 
 def trapezoidal_area(xyz):
     """Calculate volume under a surface defined by irregularly spaced points
@@ -457,8 +232,6 @@ def trapezoidal_area(xyz):
     zavg = tri[:,:,2].sum(axis=1)
     vol = zavg * np.abs(proj_area) / 6.0
     return vol.sum()
-
-#main()
 
 class K_log(gpflow.kernels.Kernel):
 
@@ -494,7 +267,6 @@ class K_log(gpflow.kernels.Kernel):
         diag = tf.reshape(tf.fill(tf.stack([n]), tf.squeeze(self.variance)), (-1,))
         #diag_db = tf.reshape(tf.fill(tf.stack([n]), tf.squeeze(self.variance_db)), (-1,))
         return diag
-
 
 def log_kernel_new(X, X2, lengthscale, variance):
     n = np.asscalar(np.array(X.shape[0]).astype(int))
@@ -533,15 +305,6 @@ class K_sqexp_kernel(gpflow.kernels.Kernel):
             X2 = X
         n=tf.cast(tf.shape(X)[0], dtype=tf.int32)
         m=tf.cast(tf.shape(X2)[0], dtype=tf.int32)
-
-        #X_logscaled = X/self.lengthscale+1
-        #X2_logscaled = X2/self.lengthscale+1
-
-        #X_l = X + self.lengthscale
-        #X2_l = X2 + self.lengthscale
-
-        #X_logscaled = tf.stack([X_logscaled_dim0, X_logscaled_dim1], axis=1)
-        #X2_logscaled = tf.stack([X2_logscaled_dim0, X2_logscaled_dim1], axis=1)
 
         X_matrix = tf.tile(tf.reshape(X[0:n],(n,1)), (1,m))
         X_matrix_tr = tf.tile(tf.reshape(X2[0:m], (m,1)), (1,n))
@@ -586,9 +349,6 @@ class K_new_kernel(gpflow.kernels.Kernel):
 
         X_l = X + self.lengthscale
         X2_l = X2 + self.lengthscale
-
-        #X_logscaled = tf.stack([X_logscaled_dim0, X_logscaled_dim1], axis=1)
-        #X2_logscaled = tf.stack([X2_logscaled_dim0, X2_logscaled_dim1], axis=1)
 
         X_matrix = tf.tile(tf.reshape(X_logscaled[0:n],(n,1)), (1,m))
         X_matrix_tr = tf.tile(tf.reshape(X2_logscaled[0:m], (m,1)), (1,n))
@@ -635,10 +395,6 @@ class K_multiplicative(gpflow.kernels.Kernel):
         n=tf.cast(tf.shape(X)[0], dtype=tf.int32)
         m=tf.cast(tf.shape(X2)[0], dtype=tf.int32)
 
-        #X_logscaled = np.zeros((n, 2), np.float64)
-        #X2_logscaled = np.zeros((m, 2), np.float64)
-
-        #X = tf.math.log(X+self.lengthscale_da)
         X_logscaled_dim0 = tf.math.log(X[:,0]/self.lengthscale_da+1)
         X_logscaled_dim1 = tf.math.log(X[:,1]/self.lengthscale_db+1)
         X2_logscaled_dim0 = tf.math.log(X2[:,0]/self.lengthscale_da+1)
@@ -655,20 +411,12 @@ class K_multiplicative(gpflow.kernels.Kernel):
         X_matrix_tr_db = tf.tile(tf.reshape(X2_logscaled[0:m,1],(m,1)), (1,n))
         X_matrix_tr_db = tf.transpose(X_matrix_tr_db)
 
-
         diff_X_da = X_matrix_da - X_matrix_tr_da
         diff_X_db = X_matrix_db - X_matrix_tr_db
-        #diff_X_dbda = X_matrix_db - X_matrix_tr_da
-        #diff_X_dadb = X_matrix_da - X_matrix_tr_db
 
         K_dada = tf.exp(-0.5*(diff_X_da)**2)
         K_dbdb = tf.exp(-0.5*(diff_X_db)**2)
-        #K_dbda = self.variance_da*tf.exp(-0.5*(diff_X_dbda)**2)
-        #K_dadb = self.variance_da*tf.exp(-0.5*(diff_X_dadb)**2)
 
-        #return (K_dada * K_dbdb + K_dadb * K_dbda + K_dbda* K_dadb + K_dada * K_dbdb)
-        #return (K_dada + K_dbdb + K_dadb + K_dbda + K_dbda + K_dadb + K_dada + K_dbdb)
-        #return (K_dada * K_dbdb + K_dadb * K_dbda)
         return self.variance_da * K_dada * K_dbdb
 
     def K_diag(self, X, presliced=None):
@@ -688,99 +436,7 @@ class K_multiplicative(gpflow.kernels.Kernel):
         K_dbda = self.variance_da*tf.exp(-0.5*(diff_X_dbda)**2)
         K_dadb = self.variance_da*tf.exp(-0.5*(diff_X_dadb)**2)
 
-
-        #diag_db = tf.reshape(tf.fill(tf.stack([n]), tf.squeeze(self.variance_db)), (-1,))
-        #return diag + K_dadb * K_dbda + K_dbda* K_dadb
-        #return diag + K_dadb * K_dbda
-        return diag #+ K_dadb + K_dbda
-
-class K_multiplicative_time(gpflow.kernels.Kernel):
-
-    def __init__(self):
-        super().__init__()
-        self.variance_da = gpflow.Parameter(1.0, transform=gpflow.utilities.positive())
-        self.lengthscale_da = gpflow.Parameter(10.0, transform=gpflow.utilities.positive())
-        self.lengthscale_db = gpflow.Parameter(10.0, transform=gpflow.utilities.positive())
-        self.lengthscale_dt = gpflow.Parameter(10.0, transform=gpflow.utilities.positive())
-
-    def K(self, X, X2=None, presliced=None):
-        if X2 is None:
-            X2 = X
-        n=tf.cast(tf.shape(X)[0], dtype=tf.int32)
-        m=tf.cast(tf.shape(X2)[0], dtype=tf.int32)
-
-        #X_logscaled = np.zeros((n, 2), np.float64)
-        #X2_logscaled = np.zeros((m, 2), np.float64)
-
-        #X = tf.math.log(X+self.lengthscale_da)
-        X_logscaled_dim0 = tf.math.log(X[:,0]/self.lengthscale_da+1)
-        X_logscaled_dim1 = tf.math.log(X[:,1]/self.lengthscale_db+1)
-        X_logscaled_dim2 = tf.math.log(X[:,2]/self.lengthscale_dt+1)
-        X2_logscaled_dim0 = tf.math.log(X2[:,0]/self.lengthscale_da+1)
-        X2_logscaled_dim1 = tf.math.log(X2[:,1]/self.lengthscale_db+1)
-        X2_logscaled_dim2 = tf.math.log(X2[:,2]/self.lengthscale_dt+1)
-
-        X_logscaled = tf.stack([X_logscaled_dim0, X_logscaled_dim1, X_logscaled_dim2], axis=1)
-        X2_logscaled = tf.stack([X2_logscaled_dim0, X2_logscaled_dim1, X2_logscaled_dim2], axis=1)
-
-        X_matrix_da = tf.tile(tf.reshape(X_logscaled[0:n,0],(n,1)), (1,m))
-        X_matrix_tr_da = tf.tile(tf.reshape(X2_logscaled[0:m,0], (m,1)), (1,n))
-        X_matrix_tr_da = tf.transpose(X_matrix_tr_da)
-
-        X_matrix_db = tf.tile(tf.reshape(X_logscaled[0:n,1],(n,1)), (1,m))
-        X_matrix_tr_db = tf.tile(tf.reshape(X2_logscaled[0:m,1],(m,1)), (1,n))
-        X_matrix_tr_db = tf.transpose(X_matrix_tr_db)
-
-        X_matrix_dt = tf.tile(tf.reshape(X_logscaled[0:n,2],(n,1)), (1,m))
-        X_matrix_tr_dt = tf.tile(tf.reshape(X2_logscaled[0:m,2],(m,1)), (1,n))
-        X_matrix_tr_dt = tf.transpose(X_matrix_tr_db)
-
-
-        diff_X_da = X_matrix_da - X_matrix_tr_da
-        diff_X_db = X_matrix_db - X_matrix_tr_db
-        diff_X_dt = X_matrix_dt - X_matrix_tr_dt
-
-        diff_X_dbda = X_matrix_db - X_matrix_tr_da
-        diff_X_dadb = X_matrix_da - X_matrix_tr_db
-
-        K_dada = tf.exp(-0.5*(diff_X_da)**2)
-        K_dbdb = tf.exp(-0.5*(diff_X_db)**2)
-        K_dtdt = tf.exp(-0.5*(diff_X_dt)**2)
-
-
-        K_dbda = self.variance_da*tf.exp(-0.5*(diff_X_dbda)**2)
-        K_dadb = self.variance_da*tf.exp(-0.5*(diff_X_dadb)**2)
-
-        #return (K_dada * K_dbdb + K_dadb * K_dbda + K_dbda* K_dadb + K_dada * K_dbdb)
-        #return (K_dada + K_dbdb + K_dadb + K_dbda + K_dbda + K_dadb + K_dada + K_dbdb)
-        #return (K_dada * K_dbdb + K_dadb * K_dbda)
-        return self.variance_da * K_dada * K_dbdb * K_dtdt
-
-    def K_diag(self, X, presliced=None):
-        n = tf.cast(tf.shape(X)[0], dtype=tf.int32)
-        m = tf.cast(tf.shape(X)[0], dtype=tf.int32)
-        diag = tf.reshape(tf.fill(tf.stack([n]), tf.squeeze(self.variance_da)), (-1,))
-
-        X_logscaled = np.zeros((n, 3), np.float64)
-        X2_logscaled = np.zeros((m, 3), np.float64)
-
-        X_logscaled[:,0] = tf.math.log(X[:,0]/self.lengthscale_da+1)
-        X_logscaled[:,1] = tf.math.log(X[:,1]/self.lengthscale_db+1)
-        X_logscaled[:,2] = tf.math.log(X[:,2]/self.lengthscale_dt+1)
-
-        diff_X_dbda =  X_logscaled[:,1] -  X_logscaled[:,0]
-        diff_X_dadb =  X_logscaled[:,0] -  X_logscaled[:,1]
-        #diff_X_dtdt =  X_logscaled[:,0] -  X_logscaled[:,1]
-
-        K_dbda = self.variance_da*tf.exp(-0.5*(diff_X_dbda)**2)
-        K_dadb = self.variance_da*tf.exp(-0.5*(diff_X_dadb)**2)
-
-
-        #diag_db = tf.reshape(tf.fill(tf.stack([n]), tf.squeeze(self.variance_db)), (-1,))
-        #return diag + K_dadb * K_dbda + K_dbda* K_dadb
-        #return diag + K_dadb * K_dbda
-        return diag #+ K_dadb + K_dbda
-
+        return diag
 
 def likelihood_ratio(llmin, llmax):
     return(2*(llmax-llmin))

@@ -1,34 +1,31 @@
 import numpy as np
-import tensorflow_probability as tfp
-import pandas as pd
+from numpy.linalg import inv
 from bisect import bisect_left
 from scipy import special
 from scipy.special import erf
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from numpy.linalg import inv
-import tensorflow as tf
 import scipy.linalg
-import scipy.spatial
+from scipy.stats.distributions import chi2
+from scipy.interpolate import interp1d
+import pandas as pd
+import tensorflow as tf
+import tensorflow_probability as tfp
 import gpflow
 from gpflow.ci_utils import ci_niter
 from gpflow import set_trainable
-from scipy.stats.distributions import chi2
-import pandas as pd
-from matplotlib import cm
-from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from gpflow.utilities import print_summary, positive
-np.set_printoptions(suppress=True)
+from gpflow import set_trainable
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import pymc3
-from statsmodels.graphics.tsaplots import plot_acf
 
-from utilities import (trapezoidal_area, compute_prior_hyperparameters, fit_1d_model, predict_in_observations, fit_Hand, y_exp_Hand, y_exp, fit_3d_model, find_nearest, K_log, K_multiplicative)
+
+np.set_printoptions(suppress=True)
+
+from utilities import (compute_prior_hyperparameters, trapezoidal_area, predict_in_observations, fit_Hand, K_multiplicative)
 
 f64 = gpflow.utilities.to_default_float
-
-N=5000 # number splits in Hand model
 
 df = pd.read_csv('../data/GrecoSimulatedData.csv', sep=';')
 
@@ -178,7 +175,6 @@ Cov2_full = np.asarray(Cov2_full)
 #mean2_obs, Cov2_obs = m_full.predict_f(np.concatenate((Dose_A.reshape(-1,1), Dose_B.reshape(-1,1)), axis=1))
 #mean2_obs = pd.DataFrame(np.asarray(mean2_obs).reshape((Dose_A.reshape(-1,1).shape, Dose_A.reshape(-1,1).shape)))
 
-
 mean_full_est = pd.DataFrame(mean2_full.reshape(Xi.shape))
 Cov_full_est = pd.DataFrame(Cov2_full.reshape(Xi.shape))
 
@@ -191,11 +187,6 @@ surf = ax.plot_surface(Xi, Xj, mean2_full.reshape(Xi.shape), cmap=cm.viridis,
 
 Cov_full_est = pd.DataFrame(Cov2_full.reshape(Xi.shape))
 
-# def main(xyz):
-#     area_underneath = trapezoidal_area(xyz)
-#     print(area_underneath)
-
-
 plt.title("2d fit with GPs")
 # Customize the z axis.
 ax.set_zlim(0.01, 100.01)
@@ -207,7 +198,7 @@ ax.set_zlabel('Effect')
 ax.view_init(30, 70)
 # Add a color bar which maps values to colors.
 fig.colorbar(surf, shrink=0.5, aspect=5)
-plt.savefig('Greco'+'JointFit'+'.png')
+plt.savefig('figures/Greco/Greco'+'JointFit'+'.png')
 
 xx_A = np.linspace(np.min(Dose_A), np.max(Dose_A),  num_predict).reshape(num_predict, 1)
 xx_B = np.linspace(np.min(Dose_B), np.max(Dose_B),  num_predict).reshape( num_predict, 1)
@@ -225,17 +216,7 @@ plt.fill_between(
 #plt.title('Dose-response curve')
 plt.ylabel('Response', fontsize=20)
 plt.xlabel('$x_1$', fontsize=20)
-plt.savefig('Greco'+'DrugA'+'.png')
-
-# # compute MSE
-# df1 = df.iloc[2:]
-# df1['Response'].iloc[0] = 106.7
-# Effect1 = df['Response'].values.reshape(-1,1).copy()
-# MSE_A = np.sum((np.asarray(Effect1).flatten() - mean2_obs.loc[0])**2)/len(np.asarray(Effect1).flatten())
-#
-# print('MSE_A', MSE_A)
-#
-# exit()
+plt.savefig('figures/Greco/Greco'+'DrugA'+'.png')
 
 ## plot
 plt.figure(figsize=(12, 6))
@@ -251,7 +232,7 @@ plt.fill_between(
 plt.ylabel('Response', fontsize=20)
 plt.xlabel('$log(x_1/l_1+1)$', fontsize=20)
 #plt.title('Dose-response curve')
-plt.savefig('Greco'+'DrugA_in_log'+'.png')
+plt.savefig('figures/Greco/Greco'+'DrugA_in_log'+'.png')
 
 
 ## plot
@@ -267,7 +248,7 @@ plt.fill_between(
 )
 plt.ylabel('Response', fontsize=20)
 plt.xlabel('$log(x_2/l_2+1)$', fontsize=20)
-plt.savefig('Greco'+'DrugB_in_log'+'.png')
+plt.savefig('figures/Greco/Greco'+'DrugB_in_log'+'.png')
 
 ## plot
 plt.figure(figsize=(12, 6))
@@ -282,7 +263,7 @@ plt.fill_between(
 )
 plt.ylabel('Response', fontsize=20)
 plt.xlabel('$x_2$', fontsize=20)
-plt.savefig('Greco'+'DrugB'+'.png')
+plt.savefig('figures/Greco/Greco'+'DrugB'+'.png')
 
 dim2_A = mean_full_est.iloc[0].to_numpy()
 dim2_B = mean_full_est.loc[:][0].to_numpy()
@@ -301,7 +282,6 @@ Y_expected_Hand_check = fit_Hand(X2, X1, dim2_B, dim2_A, Dose_B, Dose_A)
 
 mean_full, Cov_full = predict_in_observations(X1, X2, m_full)
 
-print(mean_full)
 #df1 = df.iloc[2:]
 #df1['Response'].iloc[0] = 106.7
 df_A = df[df['Dose2']==0.0]
@@ -335,19 +315,7 @@ print(Volume_null-Volume_full)
 
 xx_a = np.linspace(np.min(Dose_A), np.max(Dose_A), dim2_A.shape[0]).reshape(-1,1)
 xx_b = np.linspace(np.min(Dose_B), np.max(Dose_B), dim2_B.shape[0]).reshape(-1,1)
-#print(y_exp_Hand(N, 0.0, 0.18, dim2_A.reshape(-1,1), xx_a, dim2_B.reshape(-1,1), xx_b))
-#print(y_exp_Hand(N, 0.0, 5.18, dim2_A.reshape(-1,1), xx_a, dim2_B.reshape(-1,1), xx_b))
 
-#v = np.linspace(-1.0, 1.0, 10, endpoint=True)
-# plt.figure(figsize=(12, 6))
-# v = np.linspace(-100.0, 100.0, 10, endpoint=True)
-# plt.contourf(np.log(Dose_A.flatten()+np.array(m_full.kernel.lengthscale_da.value())),
-# np.log(Dose_B.flatten()+np.array(m_full.kernel.lengthscale_db.value())), mean_full - Y_expected_Hand, v, cmap='RdYlGn')
-# plt.colorbar()
-# plt.xlabel('log(dose_a +l_a)')
-# plt.ylabel('log(dose_b +l_b)')
-# plt.title('Difference between the models')
-# plt.savefig('Greco'+'contour_result'+'.png')
 
 print('Dose_A', Dose_A)
 fig, ax = plt.subplots(figsize=(6,6))
@@ -365,17 +333,8 @@ for t in cbar.ax.get_yticklabels():
 plt.xlabel('$x_1$', fontsize=20)
 plt.ylabel('$x_2$', fontsize=20)
 #plt.title("Hand-GP estimated effect", fontsize=20)
-plt.savefig('Greco_contour_result'+'.png', bbox_inches = 'tight',
+plt.savefig('figures/Greco/Greco_contour_result'+'.png', bbox_inches = 'tight',
     pad_inches = 0)
-
-# plt.figure(figsize=(12, 6))
-# plt.contourf(np.log(Dose_A.flatten()+np.array(m_full.kernel.lengthscale_da.value())), np.log(Dose_B.flatten()+np.array(m_full.kernel.lengthscale_db.value())),Y_expected_Hand)
-# plt.colorbar()
-# plt.xlabel('log(dose_a +l_a)')
-# plt.ylabel('log(dose_b +l_b)')
-# plt.title('Hand model contour')
-# plt.savefig('Greco_Hand_contour_result'+'.png')
-
 
 fig, ax = plt.subplots(figsize=(6,6))
 fig.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.8)
@@ -392,18 +351,8 @@ for t in cbar.ax.get_yticklabels():
 plt.xlabel('$x_1$', fontsize=20)
 plt.ylabel('$x_2$', fontsize=20)
 #plt.title("Hand-GP estimated surface", fontsize=20)
-plt.savefig('Greco_Hand_contour_result'+'.png', bbox_inches = 'tight',
+plt.savefig('figures/Greco/Greco_Hand_contour_result'+'.png', bbox_inches = 'tight',
     pad_inches = 0)
-
-
-# plt.figure(figsize=(12, 6))
-# plt.contourf(np.log(Dose_A.flatten()+np.array(m_full.kernel.lengthscale_da.value())), np.log(Dose_B.flatten()+np.array(m_full.kernel.lengthscale_db.value())), mean_full)
-# plt.colorbar()
-# plt.xlabel('log(dose_a +l_a)')
-# plt.ylabel('log(dose_b +l_b)')
-# plt.title('GP model contour')
-# plt.savefig('Greco_mean_full_contour_result'+'.png')
-#
 
 fig, ax = plt.subplots(figsize=(6,6))
 fig.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.8)
@@ -421,9 +370,8 @@ for t in cbar.ax.get_yticklabels():
 #plt.title("GP estimated surface", fontsize=20)
 plt.xlabel('$x_1$', fontsize=20)
 plt.ylabel('$x_2$', fontsize=20)
-plt.savefig('Greco_mean_full_contour_result'+'.png', bbox_inches = 'tight',
+plt.savefig('figures/Greco/Greco_mean_full_contour_result'+'.png', bbox_inches = 'tight',
     pad_inches = 0)
-
 
 # avergage over multiple (0,0) points
 
@@ -491,30 +439,11 @@ for t in cbar.ax.get_yticklabels():
 plt.xlabel('$x_1$', fontsize=20)
 plt.ylabel('$x_2$', fontsize=20)
 #plt.title("GP residuals", fontsize=20)
-plt.savefig('Greco_GP_residuals'+'.png' ,bbox_inches = 'tight',
+plt.savefig('figures/Greco/Greco_GP_residuals'+'.png' ,bbox_inches = 'tight',
     pad_inches = 0)
 
 df = pd.DataFrame(result)
-df.to_csv("results_Greco.csv")
-
-
-#plt.figure(figsize=(12, 6))
-#plt.contourf(Dose_A.flatten(), Dose_B.flatten(), Effect.flatten() - Y_expected_Hand.flatten(), v, cmap='RdYlGn')
-#plt.colorbar()
-#plt.savefig(drug_pair+'contour_result_data'+'.png')
-
-
-
-#HMC
-# def plot_samples(step_size, num_leapfrog, samples, parameters, y_axis_label):
-#     plt.figure(figsize=(8, 4))
-#     for val, param in zip(samples, parameters):
-#         plt.plot(tf.squeeze(val), label=param_to_name[param])
-#
-#     plt.legend(bbox_to_anchor=(1.0, 3.0))
-#     plt.xlabel("HMC iteration")
-#     plt.ylabel(y_axis_label)
-#     plt.savefig('greco_samples'+str(step_size)+str(num_leapfrog)+'.png')
+df.to_csv("results/results_Greco.csv")
 
 def plot_samples(step_size, num_leapfrog, samples, parameters, y_axis_label):
     # Plot samples of the pars
@@ -548,10 +477,7 @@ def plot_samples(step_size, num_leapfrog, samples, parameters, y_axis_label):
     plt.legend(bbox_to_anchor=(1.0, 3.0))
     plt.xlabel("HMC iteration", fontsize=15)
     plt.ylabel(y_axis_label, fontsize=15)
-
-
-    plt.savefig('greco_samples'+str(step_size)+str(num_leapfrog)+'.png')
-
+    plt.savefig('figures/Greco/greco_samples'+str(step_size)+str(num_leapfrog)+'.png')
 
 def marginal_samples(step_size,num_leapfrog, samples, parameters, y_axis_label):
     fig, axes = plt.subplots(1, len(param_to_name), figsize=(15, 3), constrained_layout=True)
@@ -561,16 +487,16 @@ def marginal_samples(step_size,num_leapfrog, samples, parameters, y_axis_label):
         ax.tick_params(axis='y', labelsize=15)
         ax.set_title(param_to_name[param])
     fig.suptitle(y_axis_label)
-    plt.savefig('greco_marginal_samples_'+str(step_size)+str(num_leapfrog)+'.png')
+    plt.savefig('figures/Greco/greco_marginal_samples_'+str(step_size)+str(num_leapfrog)+'.png')
 
-    fig, axes = plt.subplots(1, len(param_to_name), figsize=(15, 3), constrained_layout=True)
-    for ax, val, param in zip(axes, samples, parameters):
-        plot_acf(np.stack(val).flatten(),ax=ax,lags=50)
-        ax.tick_params(axis='lags', labelsize=15)
-        ax.tick_params(axis='ACF', labelsize=15)
-        ax.set_title(param_to_name[param])
-    fig.suptitle(y_axis_label)
-    plt.savefig('greco_acf_'+str(step_size)+str(num_leapfrog)+'.png')
+    #fig, axes = plt.subplots(1, len(param_to_name), figsize=(15, 3), constrained_layout=True)
+    #for ax, val, param in zip(axes, samples, parameters):
+    #    plot_acf(np.stack(val).flatten(),ax=ax,lags=50)
+    #    ax.tick_params(axis='lags', labelsize=15)
+    #    ax.tick_params(axis='ACF', labelsize=15)
+    #    ax.set_title(param_to_name[param])
+    #fig.suptitle(y_axis_label)
+    #plt.savefig('figures/Greco/greco_acf_'+str(step_size)+str(num_leapfrog)+'.png')
 
     res = np.zeros((4, 2))
     for i in range(4):
@@ -589,9 +515,7 @@ def marginal_samples(step_size,num_leapfrog, samples, parameters, y_axis_label):
 
     print(df)
     df = df.round(5)
-    df.to_csv('greco_hyperparameters.csv')
-
-
+    df.to_csv('results/greco_hyperparameters.csv')
 
 parameters_vector = tf.stack(m_full.trainable_parameters)
 
