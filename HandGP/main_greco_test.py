@@ -22,7 +22,7 @@ from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import pymc3
 
-from utilities import (trapezoidal_area, compute_prior_hyperparameters, fit_1d_model, predict_in_observations, fit_Hand, y_exp_Hand, y_exp, fit_3d_model, find_nearest, K_log, K_multiplicative)
+from utilities import (trapezoidal_area, compute_prior_hyperparameters,  predict_in_observations, fit_Hand, y_exp_Hand, y_exp, find_nearest, K_log, K_multiplicative)
 
 f64 = gpflow.utilities.to_default_float
 
@@ -217,7 +217,7 @@ ax.set_zlabel('Effect')
 ax.view_init(30, 70)
 # Add a color bar which maps values to colors.
 fig.colorbar(surf, shrink=0.5, aspect=5)
-plt.savefig('Greco'+'JointFit'+'.png')
+plt.savefig('figures/Greco/Greco'+'JointFit'+'.png')
 
 xx_A = np.linspace(np.min(Dose_A), np.max(Dose_A),  num_predict).reshape(num_predict, 1)
 xx_B = np.linspace(np.min(Dose_B), np.max(Dose_B),  num_predict).reshape( num_predict, 1)
@@ -235,7 +235,7 @@ plt.fill_between(
 #plt.title('Dose-response curve')
 plt.ylabel('Response', fontsize=20)
 plt.xlabel('$x_1$', fontsize=20)
-plt.savefig('Greco'+'DrugA'+'.png')
+plt.savefig('figures/Greco/Greco'+'DrugA'+'.png')
 
 ## plot
 plt.figure(figsize=(12, 6))
@@ -251,7 +251,7 @@ plt.fill_between(
 plt.ylabel('Response', fontsize=20)
 plt.xlabel('$log(x_1+l_1)$', fontsize=20)
 #plt.title('Dose-response curve')
-plt.savefig('Greco'+'DrugA_in_log'+'.png')
+plt.savefig('figures/Greco/Greco'+'DrugA_in_log'+'.png')
 
 
 ## plot
@@ -267,7 +267,7 @@ plt.fill_between(
 )
 plt.ylabel('Response', fontsize=20)
 plt.xlabel('$log(x_2+l_2)$', fontsize=20)
-plt.savefig('Greco'+'DrugB_in_log'+'.png')
+plt.savefig('figures/Greco/Greco'+'DrugB_in_log'+'.png')
 
 ## plot
 plt.figure(figsize=(12, 6))
@@ -282,7 +282,7 @@ plt.fill_between(
 )
 plt.ylabel('Response', fontsize=20)
 plt.xlabel('$x_2$', fontsize=20)
-plt.savefig('Greco'+'DrugB'+'.png')
+plt.savefig('figures/Greco/Greco'+'DrugB'+'.png')
 
 dim2_A = mean_full_est.iloc[0].to_numpy()
 dim2_B = mean_full_est.loc[:][0].to_numpy()
@@ -340,7 +340,7 @@ for t in cbar.ax.get_yticklabels():
 plt.xlabel('$x_1$', fontsize=20)
 plt.ylabel('$x_2$', fontsize=20)
 #plt.title("Hand-GP estimated effect", fontsize=20)
-plt.savefig('Greco_contour_result'+'.png')
+plt.savefig('figures/Greco/Greco_contour_result'+'.png')
 
 # plt.figure(figsize=(12, 6))
 # plt.contourf(np.log(Dose_A.flatten()+np.array(m_full.kernel.lengthscale_da.value())), np.log(Dose_B.flatten()+np.array(m_full.kernel.lengthscale_db.value())),Y_expected_Hand)
@@ -366,7 +366,7 @@ for t in cbar.ax.get_yticklabels():
 plt.xlabel('$x_1$', fontsize=20)
 plt.ylabel('$x_2$', fontsize=20)
 #plt.title("Hand-GP estimated surface", fontsize=20)
-plt.savefig('Greco_Hand_contour_result'+'.png')
+plt.savefig('figures/Greco/Greco_Hand_contour_result'+'.png')
 
 
 # plt.figure(figsize=(12, 6))
@@ -394,11 +394,11 @@ for t in cbar.ax.get_yticklabels():
 #plt.title("GP estimated surface", fontsize=20)
 plt.xlabel('$x_1$', fontsize=20)
 plt.ylabel('$x_2$', fontsize=20)
-plt.savefig('Greco_mean_full_contour_result'+'.png')
+plt.savefig('figures/Greco/Greco_mean_full_contour_result'+'.png')
 
 
 # avergage over multiple (0,0) points
-df = pd.read_csv('GrecoSimulatedData.csv', sep=';')
+df = pd.read_csv('../data/GrecoSimulatedData.csv', sep=';')
 df = df.sort_values(by=['Dose1','Dose2'])
 
 Effect = df['Response'].values.reshape(-1,1).copy()
@@ -442,12 +442,11 @@ for t in cbar.ax.get_yticklabels():
 plt.xlabel('$x_1$', fontsize=20)
 plt.ylabel('$x_2$', fontsize=20)
 #plt.title("GP residuals", fontsize=20)
-plt.savefig('Greco_GP_residuals'+'.png',bbox_inches = 'tight',
+plt.savefig('figures/Greco/Greco_GP_residuals'+'.png',bbox_inches = 'tight',
     pad_inches = 0)
 
 print('MSE total',np.sum((mean_full.flatten()-Effect.reshape(6,6).T.flatten())**2)/(len(mean_full.flatten())))
 
-exit()
 mean_full = pd.DataFrame(mean_full)
 Cov_full = pd.DataFrame(Cov_full)
 
@@ -467,7 +466,7 @@ plt.fill_between(
 #plt.title('Dose-response curve')
 plt.ylabel('Response', fontsize=20)
 plt.xlabel('$x_1$', fontsize=20)
-plt.savefig('Greco'+'DrugA'+'.png')
+plt.savefig('figures/Greco/Greco'+'DrugA'+'.png')
 
 
 plt.figure(figsize=(12, 6))
@@ -483,7 +482,7 @@ plt.fill_between(
 #plt.title('Dose-response curve')
 plt.ylabel('Response', fontsize=20)
 plt.xlabel('$x_1$', fontsize=20)
-plt.savefig('Greco'+'DrugB'+'.png')
+plt.savefig('figures/Greco/Greco'+'DrugB'+'.png')
 
 
 print(df)
@@ -497,7 +496,6 @@ print(mean_full.iloc[0])
 print(Effect.reshape(6,6)[:,0])
 print(Effect.reshape(6,6)[0,:])
 
-exit()
 
 
 df = pd.DataFrame(result)
@@ -537,7 +535,7 @@ def plot_samples(step_size, num_leapfrog, samples, parameters, y_axis_label):
     plt.legend(bbox_to_anchor=(1.0, 3.0))
     plt.xlabel("HMC iteration")
     plt.ylabel(y_axis_label)
-    plt.savefig('greco_samples'+str(step_size)+'_'+str(num_leapfrog)+'.png')
+    plt.savefig('figures/Greco/greco_samples'+str(step_size)+'_'+str(num_leapfrog)+'.png')
 
 
 def marginal_samples(step_size,num_leapfrog, samples, parameters, y_axis_label):
@@ -546,7 +544,7 @@ def marginal_samples(step_size,num_leapfrog, samples, parameters, y_axis_label):
         ax.hist(np.stack(val).flatten(), bins=20)
         ax.set_title(param_to_name[param])
     fig.suptitle(y_axis_label)
-    plt.savefig('greco_marginal_samples_'+str(step_size)+'_'+str(num_leapfrog)+'.png')
+    plt.savefig('figures/Greco/greco_marginal_samples_'+str(step_size)+'_'+str(num_leapfrog)+'.png')
 
     res = np.zeros((4, 2))
     for i in range(4):
@@ -565,7 +563,7 @@ def marginal_samples(step_size,num_leapfrog, samples, parameters, y_axis_label):
 
     print(df)
     df = df.round(5)
-    df.to_csv('greco_hyperparameters.csv')
+    df.to_csv('results/Greco/greco_hyperparameters.csv')
 
 
 

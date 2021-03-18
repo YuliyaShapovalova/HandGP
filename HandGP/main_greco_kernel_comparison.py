@@ -23,24 +23,9 @@ from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import pymc3
 
-from utilities import (compute_prior_hyperparameters, fit_1d_model, predict_in_observations, fit_Hand, y_exp_Hand, y_exp, fit_3d_model, find_nearest, K_log, K_multiplicative)
+from utilities import (trapezoidal_area, compute_prior_hyperparameters, fit_1d_model, predict_in_observations, fit_Hand, y_exp_Hand, y_exp, fit_3d_model, find_nearest, K_log, K_multiplicative)
 
 f64 = gpflow.utilities.to_default_float
-
-def trapezoidal_area(xyz):
-    """Calculate volume under a surface defined by irregularly spaced points
-    using delaunay triangulation. "x,y,z" is a <numpoints x 3> shaped ndarray."""
-    d = scipy.spatial.Delaunay(xyz[:,:2])
-    tri = xyz[d.vertices]
-
-    a = tri[:,0,:2] - tri[:,1,:2]
-    b = tri[:,0,:2] - tri[:,2,:2]
-    proj_area = np.cross(a, b).sum(axis=-1)
-    zavg = tri[:,:,2].sum(axis=1)
-    vol = zavg * np.abs(proj_area) / 6.0
-    return vol.sum()
-
-N=5000 # number splits in Hand model
 
 df = pd.read_csv('../data/GrecoSimulatedData.csv', sep=';')
 
@@ -96,13 +81,45 @@ l1_init = l1_init.reshape(-1,1)
 l2_init = l2_init.reshape(-1,1)
 Lik_null = np.zeros((100,1))
 Lik_full = np.zeros((100,1))
-print(l1_init)
-print(l2_init)
 
+prior_lengthscale_da = tfp.distributions.Gamma(np.float64(alphaA), np.float64(betaA))
+prior_lengthscale_db = tfp.distributions.Gamma(np.float64(alphaB), np.float64(betaB))
+prior_variance_da = tfp.distributions.Gamma(np.float64(alpha_var), np.float64(beta_var))
+prior_variance_likelihood = tfp.distributions.Gamma(np.float64(2.0), np.float64(2.0))
 
-#prior_lengthscale_da = tfp.distributions.Gamma(np.float64(10.0), np.float64(2.0))
-#prior_lengthscale_db = tfp.distributions.Gamma(np.float64(10.0), np.float64(2.0))
-#prior_variance_da = tfp.distributions.InverseGamma(np.float64(1.0), np.float64(1.0))
+for i in range(1,100):
+    try:
+        init_lengthscale_da = l1_init[i,0]
+        init_lengthscale_db = l2_init[i,0]
+        init_variance = 1.0
+        init_likelihood_variance = 0.01
+
+        k_full = K_multiplicative()
+        m_full = gpflow.models.GPR(data=(Dose_AB, Effect), kernel=k_full,  mean_function=None)
+        m_full.likelihood.variance.assign(0.01)
+        #set_trainable(m_full.likelihood.variance, False)
+        m_full.kernel.lengthscale_da.assign(init_lengthscale_da)
+        m_full.kernel.lengthscale_db.assign(init_lengthscale_db)
+        # priors
+        m_full.kernel.lengthscale_da.prior = prior_lengthscale_da
+        m_full.kernel.lengthscale_db.prior = prior_lengthscale_db
+        m_full.kernel.variance_da.prior = prior_variance_da
+        m_full.likelihood.variance.prior = prior_variance_likelihood
+        opt = gpflow.optimizers.Scipy()
+        opt_logs = opt.minimize(m_full.training_loss,
+                                m_full.trainable_variables,method='BFGS',
+                                options=dict(maxiter=100))
+        #print_summary(m_full)
+        Lik_full[i,0] = np.asarray(m_full.training_loss())
+    except:
+        Lik_full[i,0] = 'NaN'
+        print('Cholesky was not successful')
+
+index = np.where(Lik_full == np.nanmin(Lik_full))[0][0][l1_init, l2_init] = np.meshgrid(np.linspace(0.01, 2.0, 10), np.linspace(0.01,  2.0, 10))
+l1_init = l1_init.reshape(-1,1)
+l2_init = l2_init.reshape(-1,1)
+Lik_null = np.zeros((100,1))
+Lik_full = np.zeros((100,1))
 
 prior_lengthscale_da = tfp.distributions.Gamma(np.float64(alphaA), np.float64(betaA))
 prior_lengthscale_db = tfp.distributions.Gamma(np.float64(alphaB), np.float64(betaB))
@@ -138,7 +155,6 @@ for i in range(1,100):
         print('Cholesky was not successful')
 
 index = np.where(Lik_full == np.nanmin(Lik_full))[0][0]
-#index = np.where(Lik_full == np.nanmax(Lik_full))[0][0]
 
 init_lengthscale_da = l1_init[index,0]
 init_lengthscale_db = l2_init[index,0]
@@ -265,20 +281,14 @@ print(MSE_B)
 ######################################################################################################################
 # Fit squared exponential kernel
 ######################################################################################################################
-#alphaA, betaA = compute_prior_hyperparameters(3.0*A_max, 0.001*A_max)
 alphaA, betaA = compute_prior_hyperparameters(A_max, 0.1*A_max)
 alphaB, betaB = compute_prior_hyperparameters(B_max, 0.1*B_max)
-
-#alphaA, betaA = compute_prior_hyperparameters(A_max, 0.1*A_max)
-#alphaB, betaB = compute_prior_hyperparameters(B_max, 0.1*B_max)
 
 eff_max_a = np.max(Effect_A)
 eff_max_b = np.max(Effect_B)
 eff_max = np.max([eff_max_a, eff_max_b])
 
 alpha_var, beta_var = compute_prior_hyperparameters(eff_max, 0.1*eff_max)
-
-
 
 prior_lengthscale_da = tfp.distributions.Gamma(np.float64(alphaA), np.float64(betaA))
 prior_lengthscale_db = tfp.distributions.Gamma(np.float64(alphaB), np.float64(betaB))
@@ -317,7 +327,6 @@ for i in range(1,100):
         print('Cholesky was not successful')
 
 index = np.where(Lik_full == np.nanmin(Lik_full))[0][0]
-#index = np.where(Lik_full == np.nanmax(Lik_full))[0][0]
 
 init_lengthscale_da = l1_init[index,0]
 init_lengthscale_db = l2_init[index,0]

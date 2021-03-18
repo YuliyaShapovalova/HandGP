@@ -30,7 +30,6 @@ f64 = gpflow.utilities.to_default_float
 df = pd.read_csv('../data/GrecoSimulatedData.csv', sep=';')
 
 df = df.sort_values(by=['Dose1','Dose2'])
-print(df)
 
 Effect = df['Response'].values.reshape(-1,1).copy()
 Dose_A = df['Dose1'].values.astype(float).copy()
@@ -46,9 +45,8 @@ Dose_B = df[df['Dose1']==0]['Dose2'].to_numpy().reshape(-1,1).astype(float)
 A_max  = np.max(Dose_A)
 B_max = np.max(Dose_B)
 
-#alphaA, betaA = compute_prior_hyperparameters(3.0*A_max, 0.001*A_max)
-alphaA, betaA = compute_prior_hyperparameters(A_max/5, 0.1*A_max)
-alphaB, betaB = compute_prior_hyperparameters(B_max/2, 0.1*B_max)
+alphaA, betaA = compute_prior_hyperparameters(A_max/10, 0.001*A_max)
+alphaB, betaB = compute_prior_hyperparameters(B_max/10, 0.001*B_max)
 
 #alphaA, betaA = compute_prior_hyperparameters(A_max, 0.1*A_max)
 #alphaB, betaB = compute_prior_hyperparameters(B_max, 0.1*B_max)
@@ -57,16 +55,8 @@ eff_max_a = np.max(Effect_A)
 eff_max_b = np.max(Effect_B)
 eff_max = np.max([eff_max_a, eff_max_b])
 
-alpha_var, beta_var = compute_prior_hyperparameters(2.5*eff_max, 0.1*eff_max)
+alpha_var, beta_var = compute_prior_hyperparameters(1.5*eff_max, 0.01*eff_max)
 
-print(alphaA)
-print(betaA)
-
-print(alphaB)
-print(betaB)
-
-print(alpha_var)
-print(beta_var)
 
 
 data = pd.concat([pd.DataFrame(Dose_AB), pd.DataFrame(Effect)], axis=1)
@@ -93,11 +83,6 @@ Lik_full = np.zeros((100,1))
 print(l1_init)
 print(l2_init)
 
-
-#prior_lengthscale_da = tfp.distributions.Gamma(np.float64(10.0), np.float64(2.0))
-#prior_lengthscale_db = tfp.distributions.Gamma(np.float64(10.0), np.float64(2.0))
-#prior_variance_da = tfp.distributions.InverseGamma(np.float64(1.0), np.float64(1.0))
-
 prior_lengthscale_da = tfp.distributions.Gamma(np.float64(alphaA), np.float64(betaA))
 prior_lengthscale_db = tfp.distributions.Gamma(np.float64(alphaB), np.float64(betaB))
 prior_variance_da = tfp.distributions.Gamma(np.float64(alpha_var), np.float64(beta_var))
@@ -113,7 +98,6 @@ for i in range(1,100):
         k_full = K_multiplicative()
         m_full = gpflow.models.GPR(data=(Dose_AB, Effect), kernel=k_full,  mean_function=None)
         m_full.likelihood.variance.assign(0.01)
-        #set_trainable(m_full.likelihood.variance, False)
         m_full.kernel.lengthscale_da.assign(init_lengthscale_da)
         m_full.kernel.lengthscale_db.assign(init_lengthscale_db)
         # priors

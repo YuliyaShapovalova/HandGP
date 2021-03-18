@@ -70,8 +70,6 @@ Effect = np.concatenate((Effect.reshape(-1,1), Effect_mono.reshape(-1,1), Effect
 # Optimizae the model
 
 [l1_init, l2_init] = np.meshgrid(np.linspace(.1, 105.0, 10), np.linspace(.1, 105.0, 10))
-print('l1_init', l1_init)
-print('l2_init', l2_init)
 l1_init = l1_init.reshape(-1,1)
 l2_init = l2_init.reshape(-1,1)
 Lik_null = np.zeros((100,1))
@@ -273,10 +271,7 @@ xx_a = np.linspace(np.min(Dose_A), np.max(Dose_A), dim2_A.shape[0]).reshape(-1,1
 xx_b = np.linspace(np.min(Dose_B), np.max(Dose_B), dim2_B.shape[0]).reshape(-1,1)
 
 fig, ax = plt.subplots(figsize=(6,6))
-#v = np.linspace(150.0, 1050.0, 10, endpoint=True)
 v = np.linspace(-0.15, 1.05, 10, endpoint=True)
-#ax.set_aspect('equal')
-#cf = ax.contourf(Dose_A.flatten(), Dose_B.flatten(),Y_expected_Hand,v)
 fig.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.8)
 cf = ax.contourf(np.log(Dose_A.flatten()/np.array(m.kernel.lengthscale_da.value())+1), np.log(Dose_B.flatten()/np.array(m.kernel.lengthscale_db.value())+1),Y_expected_Hand,v)
 cbar = fig.colorbar(cf, ax=ax)
