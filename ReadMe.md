@@ -31,7 +31,7 @@ Reproduces experiments with HandGP model.
 ### Dependencies 
 This work depends on the [GPflow project](https://www.gpflow.org/) and [TensorFlow](https://www.tensorflow.org/) as well as the numpy, scipy, matplotlib.\\
 
-Demos work with GPflow v.2.0.0, TensorFlow v2.1.0 and TensorFlow probability v0.9.0. 
+Demos work with GPflow v.2.0.0, TensorFlow v2.1.0 and TensorFlow probability v0.9.0. PyMC3 v3.8.
 
 ## MuSyC
 Reproduces experiments with MuSyC model. Code is based on the library synergy. 

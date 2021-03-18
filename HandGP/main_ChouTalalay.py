@@ -445,7 +445,7 @@ def marginal_samples(step_size,leap_frog, samples, parameters, y_axis_label):
 
     print(df)
     df = df.round(2)
-    df.to_csv('results/ChouTalalay_hyperparameters'+str(step_size)+str(leap_frog)+'.csv')
+    df.to_csv('results/ChouTalalay/ChouTalalay_hyperparameters'+str(step_size)+str(leap_frog)+'.csv')
 
 leapfrog_num_and_step_size = np.stack(np.meshgrid([10.0], [0.05])).T.reshape(-1, 2)
 num_hmc_parameters = leapfrog_num_and_step_size.shape[0]
