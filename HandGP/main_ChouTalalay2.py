@@ -20,20 +20,14 @@ from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import pymc3
 
-
 np.set_printoptions(suppress=True)
 
 from utilities import (compute_prior_hyperparameters, trapezoidal_area, predict_in_observations, fit_Hand, K_multiplicative)
 
 f64 = gpflow.utilities.to_default_float
 
-
 np.random.seed(100)
 tf.random.set_seed(100)
-
-################################################################################################
-# It is immportant to set up prior for all parameters, including the variance of the likelihood
-################################################################################################
 
 df = pd.read_csv('../data/YonetaniData2.csv', sep=";")
 #df = df.iloc[1:]
@@ -53,12 +47,9 @@ Dose_A = df[df['Conc.Phen']==0]['Conc.ADP'].to_numpy().reshape(-1,1).astype(floa
 Dose_B = df[df['Conc.ADP']==0]['Conc.Phen'].to_numpy().reshape(-1,1).astype(float)
 
 
-# hyperparameters of the priors
+# set hyperparameters
 A_max  = np.max(Dose_A)
 B_max = np.max(Dose_B)
-
-print(A_max)
-print(B_max)
 
 eff_max_a = np.max(Effect_A)
 eff_max_b = np.max(Effect_B)
@@ -68,12 +59,8 @@ eff_min_b = np.min(Effect_B)
 
 eff_max = np.max(Effect)
 
-print(eff_max)
-
 c_a = eff_max_a/eff_min_a
 c_b = eff_max_b /eff_min_b
-
-
 
 alphaA, betaA = compute_prior_hyperparameters(A_max, 0.1*A_max/c_a)
 alphaB, betaB = compute_prior_hyperparameters(B_max, 0.1*B_max/c_b)
@@ -83,29 +70,6 @@ eff_max_b = np.max(Effect_B)
 eff_max = np.max([eff_max_a, eff_max_b])
 
 alpha_var, beta_var = compute_prior_hyperparameters(eff_max, 0.1*eff_max)
-
-print(eff_max)
-print(0.1*eff_max)
-
-
-eff_max_a = np.max(Effect_A)
-eff_max_b = np.max(Effect_B)
-
-eff_min_a = np.min(Effect_A)
-eff_min_b = np.min(Effect_B)
-
-eff_max = np.max(Effect)
-
-print(eff_max)
-
-c_a = eff_max_a/eff_min_a
-c_b = eff_max_b /eff_min_b
-
-
-print(c_a)
-print(c_b)
-
-
 
 zeros_A = np.zeros((Dose_A.shape))
 zeros_B = np.zeros((Dose_B.shape))
@@ -119,7 +83,6 @@ Effect_mono = np.concatenate((Effect_A.reshape(-1,1), Effect_B.reshape(-1,1)),  
 Dose_AB = np.concatenate((Dose_AB, Dose_AB_mono, Dose_AB_mono, Dose_AB_mono, Dose_AB_mono, Dose_AB_mono, Dose_AB_mono),  axis=0)
 Effect = np.concatenate((Effect.reshape(-1,1), Effect_mono.reshape(-1,1), Effect_mono.reshape(-1,1), Effect_mono.reshape(-1,1), Effect_mono.reshape(-1,1),  Effect_mono.reshape(-1,1),  Effect_mono.reshape(-1,1)),  axis=0)
 
-#[l1_init, l2_init] = np.meshgrid(np.linspace(np.max(Dose_AB[:,0])/10.0, np.max(Dose_AB[:,0]), 10), np.linspace(np.max(Dose_AB[:,1])/10.0,  np.max(Dose_AB[:,1]), 10))
 [l1_init, l2_init] = np.meshgrid(np.linspace(0.1, np.max(Dose_A), 10), np.linspace(0.1,  np.max(Dose_B), 10))
 
 l1_init = l1_init.reshape(-1,1)
@@ -135,17 +98,11 @@ for i in range(0,100):
         init_variance = eff_max
         init_likelihood_variance = 0.001
 
-        #k1 = gpflow.kernels.RBF(active_dims=[0])
-        #k2 = gpflow.kernels.RBF(active_dims=[1])
-        #k3 = gpflow.kernels.RBF(active_dims=[2])
-        #k = k1 * k2 #* k3
         k = K_multiplicative()
 
         m = gpflow.models.GPR(data=(Dose_AB, Effect), kernel=k, mean_function=None)
 
         m.likelihood.variance.assign(0.001)
-        #m.likelihood.variance.prior = tfp.distributions.Gamma(np.float64(2.), np.float64(2.0))
-        #set_trainable(m.likelihood.variance, False)
         m.likelihood.variance.prior = tfp.distributions.Gamma(np.float64(0.14), np.float64(1.14))
 
         m.kernel.lengthscale_da.assign(init_lengthscale_da)
@@ -162,11 +119,9 @@ for i in range(0,100):
         opt = gpflow.optimizers.Scipy()
 
         opt_logs = opt.minimize(m.training_loss, m.trainable_variables, options=dict(maxiter=100))
-        #print_summary(m)
 
         Lik_full[i,0] = np.asarray(m.training_loss())
         var_init[i,0] = np.asarray(m.kernel.variance_da.value())
-
 
     except:
         Lik_full[i,0] = 'NaN'
@@ -232,9 +187,7 @@ plt.fill_between(
     color="purple",
     alpha=0.2
 )
-#plt.ylim((0.0, 1.0))
-#plt.title('Monotherapeutic slice of the GP surface', fontsize=20)
-#plt.xlabel("$Dose$", fontsize=20), plt.ylabel("Effect", fontsize=20)
+
 plt.xlabel('$x_1$', fontsize=20)
 plt.ylabel('Response', fontsize=20)
 plt.ylim(0.0, 1.1)
@@ -252,8 +205,7 @@ plt.fill_between(
     color="purple",
     alpha=0.2
 )
-#plt.title('Monotherapeutic slice of the GP surface', fontsize=20)
-#plt.xlabel("$Dose$", fontsize=20), plt.ylabel("Effect", fontsize=20)
+
 plt.xlabel('$x_2$', fontsize=20)
 plt.ylabel('Response', fontsize=20)
 plt.ylim(0.0, 1.1)
@@ -263,8 +215,6 @@ plt.savefig('figures/ChouTalalay2/'+drug_name+'_DrugB'+'.png')
 
 dim2_A = mean2.iloc[0].to_numpy()
 dim2_B = mean2.loc[:][0].to_numpy()
-
-N = 5000
 
 Effect = df['FracInhib'].values.reshape(-1,1).copy()
 Dose_A = df['Conc.ADP'].values.astype(float).copy()

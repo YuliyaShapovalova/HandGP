@@ -28,9 +28,6 @@ f64 = gpflow.utilities.to_default_float
 
 np.random.seed(100)
 tf.random.set_seed(100)
-################################################################################################
-# It is immportant to set up prior for all parameters, including the variance of the likelihood
-################################################################################################
 
 df = pd.read_csv('../data/YonetaniData1.csv', sep=";")
 #df = df.iloc[1:]
@@ -47,8 +44,6 @@ Effect_A = df[df['Conc.ADPr'] == 0]['FracInhib'].to_numpy().reshape(-1,1).astype
 Dose_A = df[df['Conc.ADPr']==0]['Conc.ADP'].to_numpy().reshape(-1,1).astype(float)
 Dose_B = df[df['Conc.ADP']==0]['Conc.ADPr'].to_numpy().reshape(-1,1).astype(float)
 
-
-
 eff_max_a = np.max(Effect_A)
 eff_max_b = np.max(Effect_B)
 
@@ -57,12 +52,10 @@ eff_min_b = np.min(Effect_B)
 
 eff_max = np.max(Effect)
 
-print(eff_max)
-
 c_a = eff_max_a/eff_min_a
 c_b = eff_max_b /eff_min_b
 
-# hyperparameters of the priors
+# set hyperparameters
 A_max  = np.max(Dose_A)
 B_max = np.max(Dose_B)
 

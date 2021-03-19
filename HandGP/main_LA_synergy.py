@@ -41,12 +41,14 @@ Effect_A = df[df['DRUG_B'] == 0]['E'].to_numpy().reshape(-1,1).astype(float)
 Dose_A = df[df['DRUG_B']==0]['DRUG_A'].to_numpy().reshape(-1,1).astype(float)
 Dose_B = df[df['DRUG_A']==0]['DRUG_B'].to_numpy().reshape(-1,1).astype(float)
 
-# hyperparameters of the priors
+# set hyperparameters
 A_max  = np.max(Dose_A)
 B_max = np.max(Dose_B)
 
+
 alphaA, betaA = compute_prior_hyperparameters(A_max/5, 0.01*A_max)
 alphaB, betaB = compute_prior_hyperparameters(B_max/5, 0.01*B_max)
+
 
 eff_max_a = np.max(Effect_A)
 eff_max_b = np.max(Effect_B)
