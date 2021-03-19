@@ -232,8 +232,7 @@ Volume_full = trapezoidal_area(xyz_full)
 xyz_null = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), Y_expected_Hand.reshape(-1,1)),axis=1)
 Volume_null = trapezoidal_area(xyz_null)
 
-#print(Volume_null, Volume_full)
-#print(Volume_full-Volume_null)
+print('Volume difference', Volume_full-Volume_null)
 
 xx_a = np.linspace(np.min(Dose_A), np.max(Dose_A), dim2_A.shape[0]).reshape(-1,1)
 xx_b = np.linspace(np.min(Dose_B), np.max(Dose_B), dim2_B.shape[0]).reshape(-1,1)

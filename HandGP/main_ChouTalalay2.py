@@ -60,14 +60,29 @@ B_max = np.max(Dose_B)
 print(A_max)
 print(B_max)
 
-alphaA, betaA = compute_prior_hyperparameters(A_max/2, 0.1*A_max)
-alphaB, betaB = compute_prior_hyperparameters(B_max, 0.1*B_max)
+eff_max_a = np.max(Effect_A)
+eff_max_b = np.max(Effect_B)
+
+eff_min_a = np.min(Effect_A)
+eff_min_b = np.min(Effect_B)
+
+eff_max = np.max(Effect)
+
+print(eff_max)
+
+c_a = eff_max_a/eff_min_a
+c_b = eff_max_b /eff_min_b
+
+
+
+alphaA, betaA = compute_prior_hyperparameters(A_max, 0.1*A_max/c_a)
+alphaB, betaB = compute_prior_hyperparameters(B_max, 0.1*B_max/c_b)
 
 eff_max_a = np.max(Effect_A)
 eff_max_b = np.max(Effect_B)
 eff_max = np.max([eff_max_a, eff_max_b])
 
-alpha_var, beta_var = compute_prior_hyperparameters(eff_max/2, 0.1*eff_max)
+alpha_var, beta_var = compute_prior_hyperparameters(eff_max, 0.1*eff_max)
 
 print(eff_max)
 print(0.1*eff_max)
@@ -90,7 +105,7 @@ c_b = eff_max_b /eff_min_b
 print(c_a)
 print(c_b)
 
-exit()
+
 
 zeros_A = np.zeros((Dose_A.shape))
 zeros_B = np.zeros((Dose_B.shape))
@@ -332,7 +347,7 @@ plt.savefig('figures/ChouTalalay2/'+str(drug_name)+'_GP_mean'+'.png', bbox_inche
 
 fig, ax = plt.subplots(figsize=(6,6))
 #ax.set_aspect('equal')
-v = np.linspace(-0.06, 0.42, 10, endpoint=True)
+v = np.linspace(-0.2, 0.42, 10, endpoint=True)
 fig.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.8)
 #cf = ax.contourf(Dose_A.flatten(), Dose_B.flatten(),Y_expected_Hand - mean_full,cmap='RdYlGn')
 cf = ax.contourf(np.log(Dose_A.flatten()/np.array(m.kernel.lengthscale_da.value())+1), np.log(Dose_B.flatten()/np.array(m.kernel.lengthscale_db.value())+1),Y_expected_Hand - mean_full,v,cmap='RdYlGn')

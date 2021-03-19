@@ -47,12 +47,27 @@ Effect_A = df[df['Conc.ADPr'] == 0]['FracInhib'].to_numpy().reshape(-1,1).astype
 Dose_A = df[df['Conc.ADPr']==0]['Conc.ADP'].to_numpy().reshape(-1,1).astype(float)
 Dose_B = df[df['Conc.ADP']==0]['Conc.ADPr'].to_numpy().reshape(-1,1).astype(float)
 
+
+
+eff_max_a = np.max(Effect_A)
+eff_max_b = np.max(Effect_B)
+
+eff_min_a = np.min(Effect_A)
+eff_min_b = np.min(Effect_B)
+
+eff_max = np.max(Effect)
+
+print(eff_max)
+
+c_a = eff_max_a/eff_min_a
+c_b = eff_max_b /eff_min_b
+
 # hyperparameters of the priors
 A_max  = np.max(Dose_A)
 B_max = np.max(Dose_B)
 
-alphaA, betaA = compute_prior_hyperparameters(A_max, 0.01*A_max)
-alphaB, betaB = compute_prior_hyperparameters(B_max, 0.01*B_max)
+alphaA, betaA = compute_prior_hyperparameters(A_max, 0.1*A_max/c_a)
+alphaB, betaB = compute_prior_hyperparameters(B_max, 0.1*B_max/c_b)
 
 eff_max_a = np.max(Effect_A)
 eff_max_b = np.max(Effect_B)

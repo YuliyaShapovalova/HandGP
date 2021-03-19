@@ -262,8 +262,9 @@ Volume_full = trapezoidal_area(xyz_full)
 xyz_null = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), Y_expected_Hand.reshape(-1,1)),axis=1)
 Volume_null = trapezoidal_area(xyz_null)
 
-#print(Volume_null, Volume_full)
-#print(Volume_full-Volume_null)
+print('Volume difference', Volume_full-Volume_null)
+
+exit()
 
 xv, yv = np.meshgrid(X1, X2)
 #result = np.concatenate((xv.reshape(-1,1), yv.reshape(-1,1), (Y_expected_Hand - mean_full).reshape(-1,1)), axis = 1)

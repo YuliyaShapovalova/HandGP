@@ -196,6 +196,8 @@ mean2_full, Cov2_full = m_full.predict_f(Xnew2)
 mean2_full = np.asarray(mean2_full)
 Cov2_full = np.asarray(Cov2_full)
 
+
+
 mean_full_est = pd.DataFrame(mean2_full.reshape(Xi.shape))
 Cov_full_est = pd.DataFrame(Cov2_full.reshape(Xi.shape))
 
@@ -300,9 +302,17 @@ Y2 = data[data['Dose_A']==0]['Effect'].to_numpy().reshape(-1,1).astype(float)
 Y_expected_Hand = fit_Hand(X1, X2, dim2_A, dim2_B, Dose_A, Dose_B)
 Y_expected_Hand_check = fit_Hand(X2, X1, dim2_B, dim2_A, Dose_B, Dose_A)
 
-
 mean_full, Cov_full = predict_in_observations(X1, X2, m_full)
 
+[Xi, Xj] = np.meshgrid(X1,X2)
+
+xyz_full = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), mean_full.reshape(-1,1)),axis=1)
+Volume_full = trapezoidal_area(xyz_full)
+
+xyz_null = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), Y_expected_Hand.reshape(-1,1)),axis=1)
+Volume_null = trapezoidal_area(xyz_null)
+
+print('Volume difference', Volume_null-Volume_full)
 
 xv, yv = np.meshgrid(X1, X2)
 result = np.concatenate((xv.reshape(-1,1), yv.reshape(-1,1), (Y_expected_Hand - mean_full).reshape(-1,1)), axis = 1)

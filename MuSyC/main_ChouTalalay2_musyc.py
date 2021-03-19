@@ -182,7 +182,7 @@ plt.savefig('figures/ChouTalalay2/Surface_null_musyc_ChouTalalay2.png', bbox_inc
     pad_inches = 0)
 
 fig, ax = plt.subplots(figsize=(6,6))
-v = np.linspace(-0.06, 0.42, 10, endpoint=True)
+v = np.linspace(-0.2, 0.42, 10, endpoint=True)
 fig.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.8)
 cf = ax.contourf(Dose_AA.flatten(), Dose_BB.flatten(), (model.E(Dose_A, Dose_B) - Effect_AB).flatten().reshape(6,6),v, cmap='RdYlGn')
 cbar = fig.colorbar(cf, ax=ax)
