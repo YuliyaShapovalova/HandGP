@@ -88,12 +88,6 @@ Dose_B_mono = np.concatenate((zeros_B.reshape(-1,1), Dose_B.reshape(-1,1)),  axi
 
 Dose_AB_mono = np.concatenate((Dose_A_mono.reshape(-1,1), Dose_B_mono.reshape(-1,1)),  axis=1)
 Effect_mono = np.concatenate((Effect_A.reshape(-1,1), Effect_B.reshape(-1,1)),  axis=0)
-#
-# Dose_AB = np.concatenate((Dose_AB, Dose_AB_mono, Dose_AB_mono, Dose_AB_mono, Dose_AB_mono),  axis=0)
-# Effect = np.concatenate((Effect.reshape(-1,1), Effect_mono.reshape(-1,1), Effect_mono.reshape(-1,1), Effect_mono.reshape(-1,1), Effect_mono.reshape(-1,1)),  axis=0)
-
-#Dose_AB = np.concatenate(( Dose_AB_mono, Dose_AB_mono, Dose_AB_mono, Dose_AB_mono),  axis=0)
-#Effect = np.concatenate(( Effect_mono.reshape(-1,1), Effect_mono.reshape(-1,1), Effect_mono.reshape(-1,1), Effect_mono.reshape(-1,1)),  axis=0)
 
 Dose_AB = np.concatenate((Dose_AB, Dose_AB_mono, Dose_AB_mono, Dose_AB_mono, Dose_AB_mono),  axis=0)
 Effect = np.concatenate((Effect.reshape(-1,1), Effect_mono.reshape(-1,1), Effect_mono.reshape(-1,1), Effect_mono.reshape(-1,1), Effect_mono.reshape(-1,1)),  axis=0)
@@ -108,10 +102,6 @@ Lik_full = np.zeros((100,1))
 prior_lengthscale_da = tfp.distributions.Gamma(np.float64(alphaA), np.float64(betaA))
 prior_lengthscale_db = tfp.distributions.Gamma(np.float64(alphaB), np.float64(betaB))
 prior_variance_da = tfp.distributions.Gamma(np.float64(alpha_var), np.float64(beta_var))
-
-#prior_lengthscale_da = tfp.distributions.Gamma(np.float64(alphaA), np.float64(betaA))
-#prior_lengthscale_db = tfp.distributions.Gamma(np.float64(alphaB), np.float64(betaB))
-#prior_variance_da = tfp.distributions.InverseGamma(np.float64(alpha_var), np.float64(beta_var))
 
 
 for i in range(1,100):
@@ -462,6 +452,11 @@ plt.savefig('figures/Greco/Greco'+'DrugB'+'.png')
 df = pd.DataFrame(result)
 #df.to_csv("results/Greco/results_Greco.csv")
 
+'''
+Run HMC.
+General strategy is to run different combinations of the step size and leap frog
+step and pick the largest step size with the highest acceptance probability.
+'''
 
 def plot_samples(step_size, num_leapfrog, samples, parameters, y_axis_label):
     # Plot samples of the pars

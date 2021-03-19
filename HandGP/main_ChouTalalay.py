@@ -459,6 +459,12 @@ def marginal_samples(step_size,leap_frog, samples, parameters, y_axis_label):
     df = df.round(2)
     df.to_csv('results/ChouTalalay/ChouTalalay_hyperparameters'+str(step_size)+str(leap_frog)+'.csv')
 
+'''
+Run HMC.
+General strategy is to run different combinations of the step size and leap frog
+step and pick the largest step size with the highest acceptance probability.
+'''
+
 leapfrog_num_and_step_size = np.stack(np.meshgrid([10.0], [0.05])).T.reshape(-1, 2)
 num_hmc_parameters = leapfrog_num_and_step_size.shape[0]
 

@@ -450,6 +450,12 @@ def marginal_samples(step_size, leap_frog, samples, parameters, y_axis_label):
     df = df.round(2)
     df.to_csv('results/LA_synergy/LA_synergy_hyperparameters'+str(step_size)+str(leap_frog)+'.csv')
 
+'''
+Run HMC.
+General strategy is to run different combinations of the step size and leap frog
+step and pick the largest step size with the highest acceptance probability.
+'''
+
 #leapfrog_num_and_step_size = np.stack(np.meshgrid([20.0, 15.0, 10.0, 5.0, 1.0], [0.1, 0.5, 0.7, 0.9, 1.0, 1.5, 2.0])).T.reshape(-1, 2)
 leapfrog_num_and_step_size = np.stack(np.meshgrid([ 5.0], [ 0.1])).T.reshape(-1, 2)
 num_hmc_parameters = leapfrog_num_and_step_size.shape[0]

@@ -121,7 +121,8 @@ for t in cbar.ax.get_yticklabels():
 plt.xlabel('$x_1$', fontsize=15)
 plt.ylabel('$x_2$', fontsize=15)
 #plt.title("MuSyC residuals", fontsize=20)
-plt.savefig('figures/ChouTalalay/Difference_musyc_ChouTalalay.png')
+plt.savefig('figures/ChouTalalay/Difference_musyc_ChouTalalay.png', bbox_inches = 'tight',
+    pad_inches = 0)
 
 fig, ax = plt.subplots(figsize=(6,6))
 #ax.set_aspect('equal')
