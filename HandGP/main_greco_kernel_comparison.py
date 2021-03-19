@@ -23,7 +23,7 @@ from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import pymc3
 
-from utilities import (trapezoidal_area, compute_prior_hyperparameters, fit_1d_model, predict_in_observations, fit_Hand, y_exp_Hand, y_exp, fit_3d_model, find_nearest, K_log, K_multiplicative)
+from utilities import (trapezoidal_area, compute_prior_hyperparameters, predict_in_observations, fit_Hand, y_exp_Hand, y_exp,  find_nearest, K_log, K_multiplicative)
 
 f64 = gpflow.utilities.to_default_float
 
@@ -31,7 +31,6 @@ df = pd.read_csv('../data/GrecoSimulatedData.csv', sep=';')
 
 
 df = df.sort_values(by=['Dose1','Dose2'])
-print(df)
 
 Effect = df['Response'].values.reshape(-1,1).copy()
 Dose_A = df['Dose1'].values.astype(float).copy()
@@ -47,18 +46,28 @@ Dose_B = df[df['Dose1']==0]['Dose2'].to_numpy().reshape(-1,1).astype(float)
 A_max  = np.max(Dose_A)
 B_max = np.max(Dose_B)
 
-#alphaA, betaA = compute_prior_hyperparameters(3.0*A_max, 0.001*A_max)
-alphaA, betaA = compute_prior_hyperparameters(A_max/5, 0.1*A_max)
-alphaB, betaB = compute_prior_hyperparameters(B_max/2, 0.1*B_max)
-
-#alphaA, betaA = compute_prior_hyperparameters(A_max, 0.1*A_max)
-#alphaB, betaB = compute_prior_hyperparameters(B_max, 0.1*B_max)
+A_min  = np.min(Dose_A)
+B_min = np.min(Dose_B)
 
 eff_max_a = np.max(Effect_A)
 eff_max_b = np.max(Effect_B)
-eff_max = np.max([eff_max_a, eff_max_b])
 
-alpha_var, beta_var = compute_prior_hyperparameters(2.5*eff_max, 0.1*eff_max)
+eff_min_a = np.min(Effect_A)
+eff_min_b = np.min(Effect_B)
+
+eff_max = np.max(Effect)
+
+print(eff_max)
+
+c_a = eff_max_a/eff_min_a
+c_b = eff_max_b /eff_min_b
+
+
+alphaA, betaA = compute_prior_hyperparameters(A_max/c_a, 0.1*A_max/c_a)
+alphaB, betaB = compute_prior_hyperparameters(B_max/c_b, 0.1*B_max/c_b)
+
+alpha_var, beta_var = compute_prior_hyperparameters(eff_max, 0.1*eff_max)
+
 
 data = pd.concat([pd.DataFrame(Dose_AB), pd.DataFrame(Effect)], axis=1)
 data.columns = ['Dose_A', 'Dose_B', 'Effect']
@@ -76,7 +85,7 @@ Dose_B = data[data['Dose_A']==0]['Dose_B'].to_numpy().reshape(-1,1).astype(float
 Effect_B = data[data['Dose_A']==0]['Effect'].to_numpy().reshape(-1,1).astype(float)
 
 #[l1_init, l2_init] = np.meshgrid(np.linspace(Dose_AB[9,0]-Dose_AB[0,0], (np.max(Dose_AB[:,0])-np.min(Dose_AB[:,0])), 10), np.linspace(Dose_AB[9,1]-Dose_AB[0,1],  (np.max(Dose_AB[:,1])-np.min(Dose_AB[:,1])), 10))
-[l1_init, l2_init] = np.meshgrid(np.linspace(0.01, 2.0, 10), np.linspace(0.01,  2.0, 10))
+[l1_init, l2_init] = np.meshgrid(np.linspace(0.01, np.max(Dose_A), 10), np.linspace(0.01,  np.max(Dose_B), 10))
 l1_init = l1_init.reshape(-1,1)
 l2_init = l2_init.reshape(-1,1)
 Lik_null = np.zeros((100,1))
@@ -91,7 +100,7 @@ for i in range(1,100):
     try:
         init_lengthscale_da = l1_init[i,0]
         init_lengthscale_db = l2_init[i,0]
-        init_variance = 1.0
+        init_variance = (np.max(Effect_A)+np.max(Effect_B))/2
         init_likelihood_variance = 0.01
 
         k_full = K_multiplicative()
@@ -115,7 +124,7 @@ for i in range(1,100):
         Lik_full[i,0] = 'NaN'
         print('Cholesky was not successful')
 
-index = np.where(Lik_full == np.nanmin(Lik_full))[0][0][l1_init, l2_init] = np.meshgrid(np.linspace(0.01, 2.0, 10), np.linspace(0.01,  2.0, 10))
+index = np.where(Lik_full == np.nanmin(Lik_full))[0][0]
 l1_init = l1_init.reshape(-1,1)
 l2_init = l2_init.reshape(-1,1)
 Lik_null = np.zeros((100,1))
@@ -124,13 +133,13 @@ Lik_full = np.zeros((100,1))
 prior_lengthscale_da = tfp.distributions.Gamma(np.float64(alphaA), np.float64(betaA))
 prior_lengthscale_db = tfp.distributions.Gamma(np.float64(alphaB), np.float64(betaB))
 prior_variance_da = tfp.distributions.Gamma(np.float64(alpha_var), np.float64(beta_var))
-prior_variance_likelihood = tfp.distributions.Gamma(np.float64(2.0), np.float64(2.0))
+prior_variance_likelihood = tfp.distributions.Gamma(np.float64(2.0), np.float64(1.0))
 
 for i in range(1,100):
     try:
         init_lengthscale_da = l1_init[i,0]
         init_lengthscale_db = l2_init[i,0]
-        init_variance = 1.0
+        init_variance = (np.max(Effect_A)+np.max(Effect_B))/2
         init_likelihood_variance = 0.01
 
         k_full = K_multiplicative()
@@ -206,19 +215,6 @@ surf = ax.plot_surface(Xi, Xj, mean2_full.reshape(Xi.shape), cmap=cm.viridis,
 
 Cov_full_est = pd.DataFrame(Cov2_full.reshape(Xi.shape))
 
-plt.title("2d fit with GPs")
-# Customize the z axis.
-ax.set_zlim(0.01, 100.01)
-ax.zaxis.set_major_locator(LinearLocator(10))
-ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
-ax.set_xlabel('Dose A')
-ax.set_ylabel('Dose B')
-ax.set_zlabel('Effect')
-ax.view_init(30, 70)
-# Add a color bar which maps values to colors.
-fig.colorbar(surf, shrink=0.5, aspect=5)
-plt.savefig('Greco'+'JointFit'+'.png')
-
 xx_A = np.linspace(np.min(Dose_A), np.max(Dose_A),  num_predict).reshape(num_predict, 1)
 xx_B = np.linspace(np.min(Dose_B), np.max(Dose_B),  num_predict).reshape( num_predict, 1)
 
@@ -236,7 +232,7 @@ plt.fill_between(
 plt.ylabel('Response', fontsize=20)
 plt.xlabel('$log(x_1/l_1)$', fontsize=20)
 #plt.title('Dose-response curve')
-plt.savefig('Greco'+'DrugA_in_log'+'.png')
+plt.savefig('figures/KernelComparison/Greco'+'DrugA_in_log'+'.png')
 
 
 ## plot
@@ -252,7 +248,7 @@ plt.fill_between(
 )
 plt.ylabel('Response', fontsize=20)
 plt.xlabel('$log(x_2/l_2+1)$', fontsize=20)
-plt.savefig('Greco'+'DrugB_in_log'+'.png')
+plt.savefig('figures/KernelComparison/Greco'+'DrugB_in_log'+'.png')
 
 data = pd.concat([pd.DataFrame(Dose_AB), pd.DataFrame(Effect)], axis=1)
 data.columns = ['Dose_A', 'Dose_B', 'Effect']
@@ -293,8 +289,13 @@ alpha_var, beta_var = compute_prior_hyperparameters(eff_max, 0.1*eff_max)
 prior_lengthscale_da = tfp.distributions.Gamma(np.float64(alphaA), np.float64(betaA))
 prior_lengthscale_db = tfp.distributions.Gamma(np.float64(alphaB), np.float64(betaB))
 prior_variance_da = tfp.distributions.Gamma(np.float64(alpha_var), np.float64(beta_var))
-prior_variance_likelihood = tfp.distributions.Gamma(np.float64(2.0), np.float64(2.0))
+prior_variance_likelihood = tfp.distributions.Gamma(np.float64(2.0), np.float64(1.0))
 
+
+[l1_init, l2_init] = np.meshgrid(np.linspace(0.01, 2.0, 10), np.linspace(0.01,  2.0, 10))
+l1_init = l1_init.reshape(-1,1)
+l2_init = l2_init.reshape(-1,1)
+Lik_full = np.zeros((100,1))
 for i in range(1,100):
     try:
         init_lengthscale_da = l1_init[i,0]
@@ -398,7 +399,7 @@ plt.fill_between(
 plt.ylabel('Response', fontsize=20)
 plt.xlabel('$x_1/l_1$', fontsize=20)
 plt.tick_params(axis='both', which='major', labelsize=15)
-plt.savefig('Greco'+'DrugA_rbf'+'.png')
+plt.savefig('figures/KernelComparison/Greco'+'DrugA_rbf'+'.png')
 
 ## plot
 plt.figure(figsize=(12, 6))
@@ -414,7 +415,7 @@ plt.fill_between(
 plt.ylabel('Response', fontsize=20)
 plt.xlabel('$x_2/l_2$', fontsize=20)
 plt.tick_params(axis='both', which='major', labelsize=15)
-plt.savefig('Greco'+'DrugB_rbf'+'.png')
+plt.savefig('figures/KernelComparison/Greco'+'DrugB_rbf'+'.png')
 
 
 data = pd.concat([pd.DataFrame(Dose_AB), pd.DataFrame(Effect)], axis=1)

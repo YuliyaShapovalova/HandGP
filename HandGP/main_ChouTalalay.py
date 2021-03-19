@@ -26,6 +26,8 @@ from utilities import (compute_prior_hyperparameters, trapezoidal_area, predict_
 
 f64 = gpflow.utilities.to_default_float
 
+np.random.seed(100)
+tf.random.set_seed(100)
 ################################################################################################
 # It is immportant to set up prior for all parameters, including the variance of the likelihood
 ################################################################################################
@@ -442,7 +444,9 @@ def marginal_samples(step_size,leap_frog, samples, parameters, y_axis_label):
 
     df = pd.DataFrame(res)
     df.columns = ['parameter','MAP','hpd_l', 'hpd_u']
-
+    df['MAP'] = df['MAP'].astype(float).round(2)
+    df['hpd_l'] = df['hpd_l'].astype(float).round(2)
+    df['hpd_u'] = df['hpd_u'].astype(float).round(2)
     print(df)
     df = df.round(2)
     df.to_csv('results/ChouTalalay/ChouTalalay_hyperparameters'+str(step_size)+str(leap_frog)+'.csv')

@@ -55,8 +55,9 @@ eff_max = np.max(Effect)
 
 print(eff_max)
 
-c_a = 2*eff_max_a/eff_min_a
-c_b = 2*eff_min_b /eff_min_b
+c_a = eff_max_a/eff_min_a
+c_b = eff_max_b /eff_min_b
+
 
 alphaA, betaA = compute_prior_hyperparameters(A_max/c_a, 0.1*A_max/c_a)
 alphaB, betaB = compute_prior_hyperparameters(B_max/c_b, 0.1*B_max/c_b)
@@ -225,12 +226,12 @@ xx_B = np.linspace(np.min(Dose_B), np.max(Dose_B),  num_predict).reshape( num_pr
 ## plot
 plt.figure(figsize=(12, 6))
 plt.plot(Dose_A, Effect_A, "kx", mew=2)
-plt.plot(xx_A, mean_full_est.loc[0],"C0", lw=2, color='red')
+plt.plot(xx_A, mean_full_est.loc[0],"C0", lw=2, color='purple')
 plt.fill_between(
     xx_A[:, 0],
     mean_full_est.loc[0] - 1.96 * np.sqrt(Cov_full_est.loc[0]),
     mean_full_est.loc[0] + 1.96 * np.sqrt( Cov_full_est.loc[0]),
-    color="red",
+    color="purple",
     alpha=0.2
 )
 #plt.title('Dose-response curve')
@@ -241,12 +242,12 @@ plt.savefig('figures/Greco/Greco'+'DrugA'+'.png')
 ## plot
 plt.figure(figsize=(12, 6))
 plt.plot(np.log(Dose_A+m_full.kernel.lengthscale_da.value()), Effect_A, "kx", mew=2)
-plt.plot(np.log(xx_A+m_full.kernel.lengthscale_da.value()), mean_full_est.loc[0],"C0", lw=2, color='red')
+plt.plot(np.log(xx_A+m_full.kernel.lengthscale_da.value()), mean_full_est.loc[0],"C0", lw=2, color='purple')
 plt.fill_between(
     np.log(xx_A[:, 0]+m_full.kernel.lengthscale_da.value()),
     mean_full_est.loc[0] - 1.96 * np.sqrt(Cov_full_est.loc[0]),
     mean_full_est.loc[0] + 1.96 * np.sqrt( Cov_full_est.loc[0]),
-    color="red",
+    color="purple",
     alpha=0.2
 )
 plt.ylabel('Response', fontsize=20)
@@ -257,12 +258,12 @@ plt.savefig('figures/Greco/Greco'+'DrugA_in_log'+'.png')
 ## plot
 plt.figure(figsize=(12, 6))
 plt.plot(np.log(Dose_B+m_full.kernel.lengthscale_db.value()), Effect_B, "kx", mew=2)
-plt.plot(np.log(xx_B+m_full.kernel.lengthscale_db.value()), mean_full_est.iloc[:,0],"C0", lw=2, color='red')
+plt.plot(np.log(xx_B+m_full.kernel.lengthscale_db.value()), mean_full_est.iloc[:,0],"C0", lw=2, color='purple')
 plt.fill_between(
     np.log(xx_B[:, 0]+m_full.kernel.lengthscale_db.value()),
     mean_full_est.iloc[:,0] - 1.96 * np.sqrt(Cov_full_est.iloc[:,0]),
     mean_full_est.iloc[:,0] + 1.96 * np.sqrt( Cov_full_est.iloc[:,0]),
-    color="red",
+    color="purple",
     alpha=0.2
 )
 plt.ylabel('Response', fontsize=20)
@@ -272,12 +273,12 @@ plt.savefig('figures/Greco/Greco'+'DrugB_in_log'+'.png')
 ## plot
 plt.figure(figsize=(12, 6))
 plt.plot(Dose_B, Effect_B, "kx", mew=2)
-plt.plot(xx_B, mean_full_est.iloc[:,0],"C0", lw=2, color='red')
+plt.plot(xx_B, mean_full_est.iloc[:,0],"C0", lw=2, color='purple')
 plt.fill_between(
     xx_B[:, 0],
     mean_full_est.iloc[:,0] - 1.96 * np.sqrt(Cov_full_est.iloc[:,0]),
     mean_full_est.iloc[:,0] + 1.96 * np.sqrt( Cov_full_est.iloc[:,0]),
-    color="red",
+    color="purple",
     alpha=0.2
 )
 plt.ylabel('Response', fontsize=20)
@@ -324,7 +325,8 @@ for t in cbar.ax.get_yticklabels():
 plt.xlabel('$x_1$', fontsize=20)
 plt.ylabel('$x_2$', fontsize=20)
 #plt.title("Hand-GP estimated effect", fontsize=20)
-plt.savefig('figures/Greco/Greco_contour_result'+'.png')
+plt.savefig('figures/Greco/Greco_contour_result'+'.png',bbox_inches = 'tight',
+    pad_inches = 0)
 
 fig, ax = plt.subplots(figsize=(6,6))
 fig.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.8)
@@ -413,19 +415,18 @@ plt.savefig('figures/Greco/Greco_GP_residuals'+'.png',bbox_inches = 'tight',
 
 print('MSE total',np.sum((mean_full.flatten()-Effect.reshape(6,6).T.flatten())**2)/(len(mean_full.flatten())))
 
-exit()
 
 mean_full = pd.DataFrame(mean_full)
 Cov_full = pd.DataFrame(Cov_full)
 
 plt.figure(figsize=(12, 6))
 plt.plot(Dose_A, Effect_A, "kx", mew=2)
-plt.plot(X1.flatten(), mean_full.loc[0],"C0", lw=2, color='red')
+plt.plot(X1.flatten(), mean_full.loc[0],"purple", lw=2, color='purple')
 plt.fill_between(
     X1.flatten(),
     mean_full.loc[0] - 1.96 * np.sqrt(Cov_full.loc[0]),
     mean_full.loc[0] + 1.96 * np.sqrt( Cov_full.loc[0]),
-    color="red",
+    color="purple",
     alpha=0.2
 )
 #plt.title('Dose-response curve')
@@ -433,15 +434,14 @@ plt.ylabel('Response', fontsize=20)
 plt.xlabel('$x_1$', fontsize=20)
 plt.savefig('figures/Greco/Greco'+'DrugA'+'.png')
 
-
 plt.figure(figsize=(12, 6))
 plt.plot(Dose_B, Effect_B, "kx", mew=2)
-plt.plot(X2.flatten(), mean_full.iloc[:,0],"C0", lw=2, color='red')
+plt.plot(X2.flatten(), mean_full.iloc[:,0],"purple", lw=2, color='purple')
 plt.fill_between(
     X2.flatten(),
     mean_full.iloc[:,0] - 1.96 * np.sqrt(Cov_full.iloc[:,0]),
     mean_full.iloc[:,0] + 1.96 * np.sqrt( Cov_full.iloc[:,0]),
-    color="red",
+    color="purple",
     alpha=0.2
 )
 #plt.title('Dose-response curve')
@@ -450,7 +450,7 @@ plt.xlabel('$x_1$', fontsize=20)
 plt.savefig('figures/Greco/Greco'+'DrugB'+'.png')
 
 df = pd.DataFrame(result)
-df.to_csv("results/Greco/results_Greco.csv")
+#df.to_csv("results/Greco/results_Greco.csv")
 
 
 def plot_samples(step_size, num_leapfrog, samples, parameters, y_axis_label):
@@ -459,16 +459,32 @@ def plot_samples(step_size, num_leapfrog, samples, parameters, y_axis_label):
     figsize = (30, 20)
     fig, axes = plt.subplots(num_parameters, 1, figsize=figsize)
     axes[0].plot(samples[0])
-    axes[1].plot(samples[0])
-    axes[2].plot(samples[0])
-    axes[3].plot(samples[0])
+    axes[0].tick_params(axis='x', labelsize=30)
+    axes[0].tick_params(axis='y', labelsize=30)
+    plt.ylabel(y_axis_label, fontsize=15)
+    plt.xlabel("HMC iteration", fontsize=15)
+    plt.ylabel(y_axis_label, fontsize=15)
+    axes[1].plot(samples[1])
+    axes[1].tick_params(axis='x', labelsize=30)
+    axes[1].tick_params(axis='y', labelsize=30)
+    plt.ylabel(y_axis_label, fontsize=15)
+    plt.xlabel("HMC iteration", fontsize=15)
+    plt.ylabel(y_axis_label, fontsize=15)
+    axes[2].plot(samples[2])
+    axes[2].tick_params(axis='x', labelsize=30)
+    axes[2].tick_params(axis='y', labelsize=30)
+    plt.ylabel(y_axis_label, fontsize=15)
+    plt.xlabel("HMC iteration", fontsize=15)
+    plt.ylabel(y_axis_label, fontsize=15)
+    axes[3].plot(samples[3])
     # plt.figure(figsize=(8, 4))
     # for val, param in zip(samples, parameters):
     #     plt.plot(tf.squeeze(val), label=param_to_name[param])
-
+    axes[3].tick_params(axis='x', labelsize=30)
+    axes[3].tick_params(axis='y', labelsize=30)
     plt.legend(bbox_to_anchor=(1.0, 3.0))
-    plt.xlabel("HMC iteration")
-    plt.ylabel(y_axis_label)
+    plt.xlabel("HMC iteration", fontsize=15)
+    plt.ylabel(y_axis_label, fontsize=15)
     plt.savefig('figures/Greco/greco_samples'+str(step_size)+'_'+str(num_leapfrog)+'.png')
 
 
@@ -476,6 +492,8 @@ def marginal_samples(step_size,num_leapfrog, samples, parameters, y_axis_label):
     fig, axes = plt.subplots(1, len(param_to_name), figsize=(15, 3), constrained_layout=True)
     for ax, val, param in zip(axes, samples, parameters):
         ax.hist(np.stack(val).flatten(), bins=20)
+        ax.tick_params(axis='x', labelsize=15)
+        ax.tick_params(axis='y', labelsize=15)
         ax.set_title(param_to_name[param])
     fig.suptitle(y_axis_label)
     plt.savefig('figures/Greco/greco_marginal_samples_'+str(step_size)+'_'+str(num_leapfrog)+'.png')
@@ -490,13 +508,16 @@ def marginal_samples(step_size,num_leapfrog, samples, parameters, y_axis_label):
     res = np.concatenate((np.array(['l_a', 'l_b', 'var', 'var_lik']).reshape(-1,1), np.array([m_full.kernel.lengthscale_da.value(),
     m_full.kernel.lengthscale_db.value(), m_full.kernel.variance_da.value(), m_full.likelihood.variance.value()]).reshape(-1,1), res), axis=1)
 
-    df = pd.DataFrame(res)
+    df = pd.DataFrame(res).round(2)
     print(df)
 
     df.columns = ['parameter','MAP','hpd_l', 'hpd_u']
-
+    #df = df.round(2)
+    #print( df.round(2))
+    df['MAP'] = df['MAP'].astype(float).round(2)
+    df['hpd_l'] = df['hpd_l'].astype(float).round(2)
+    df['hpd_u'] = df['hpd_u'].astype(float).round(2)
     print(df)
-    df = df.round(2)
     df.to_csv('results/Greco/greco_hyperparameters.csv')
 
 

@@ -329,13 +329,13 @@ xx2 = np.linspace(np.min(Dose_B), np.max(Dose_B), mean2.shape[0]).reshape(-1,1)
 d1 = np.concatenate((mean1, mean2, xx1, xx2), axis=1)
 df1 = pd.DataFrame(data=d1)
 df1.columns = ['fa', 'fb', 'xx_a', 'xx_b']
-df1.to_csv('TestData'+str(drug_name)+'_new'+'.csv')
+df1.to_csv('../data/TestData'+str(drug_name)+'_new'+'.csv')
 
 d2 = np.concatenate((X1, X2, Dose_A, Dose_B), axis=1)
 #d2 = {'X1': [X1], 'X2': [X2], 'Dose_A': [Dose_A], 'Dose_B': [Dose_B]}
 df2 = pd.DataFrame(data=d2)
 df2.columns = ['X1', 'X2', 'Dose_A', 'Dose_B']
-df2.to_csv('TestData2'+str(drug_name)+'_new'+'.csv')
+df2.to_csv('../data/TestData2'+str(drug_name)+'_new'+'.csv')
 ############################################################################
 
 df1 = pd.read_csv('../data/TestData2LA_synergy.csv', sep= ",")
@@ -373,25 +373,6 @@ plt.ylabel('log($x_2$/$l_2$+1)', fontsize=15)
 for t in cbar.ax.get_yticklabels():
      t.set_fontsize(15)
 plt.savefig('figures/LA_synergy/'+drug_name+'contour_result'+'.png', bbox_inches = 'tight',
-    pad_inches = 0)
-
-fig, ax = plt.subplots(figsize=(6,6))
-fig.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.8)
-#ax.set_aspect('equal')
-v = np.linspace(-0.15, 1.05, 10, endpoint=True)
-#cf = ax.contourf(Dose_A.flatten(), Dose_B.flatten(), mean_full)
-cf = ax.contourf(np.log(Dose_A.flatten()/np.array(m.kernel.lengthscale_da.value())+1), np.log(Dose_B.flatten()/np.array(m.kernel.lengthscale_db.value()+1)), mean_full,v)
-
-cbar = fig.colorbar(cf, ax=ax)
-
-plt.tick_params(axis='x', labelsize=15)
-plt.tick_params(axis='y', labelsize=15)
-
-for t in cbar.ax.get_yticklabels():
-     t.set_fontsize(15)
-plt.xlabel('log($x_1$/$l_1$+1)', fontsize=15)
-plt.ylabel('log($x_2$/$l_2$+1)', fontsize=15)
-plt.savefig('figures/LA_synergy/'+drug_name+'_mean_full_contour_result'+'.png', bbox_inches = 'tight',
     pad_inches = 0)
 
 fig, ax = plt.subplots(figsize=(6,6))
@@ -460,9 +441,13 @@ def marginal_samples(step_size, leap_frog, samples, parameters, y_axis_label):
 
     df.columns = ['parameter','MAP','hpd_l', 'hpd_u']
 
+    df['MAP'] = df['MAP'].astype(float).round(2)
+    df['hpd_l'] = df['hpd_l'].astype(float).round(2)
+    df['hpd_u'] = df['hpd_u'].astype(float).round(2)
+
     print(df)
     df = df.round(2)
-    df.to_csv('results/LA_synergy/LA_antagonism_hyperparameters'+str(step_size)+str(leap_frog)+'.csv')
+    df.to_csv('results/LA_synergy/LA_synergy_hyperparameters'+str(step_size)+str(leap_frog)+'.csv')
 
 #leapfrog_num_and_step_size = np.stack(np.meshgrid([20.0, 15.0, 10.0, 5.0, 1.0], [0.1, 0.5, 0.7, 0.9, 1.0, 1.5, 2.0])).T.reshape(-1, 2)
 leapfrog_num_and_step_size = np.stack(np.meshgrid([ 5.0], [ 0.1])).T.reshape(-1, 2)

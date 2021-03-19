@@ -28,6 +28,9 @@ from utilities import (compute_prior_hyperparameters, trapezoidal_area, predict_
 f64 = gpflow.utilities.to_default_float
 
 
+np.random.seed(100)
+tf.random.set_seed(100)
+
 ################################################################################################
 # It is immportant to set up prior for all parameters, including the variance of the likelihood
 ################################################################################################
@@ -70,6 +73,24 @@ print(eff_max)
 print(0.1*eff_max)
 
 
+eff_max_a = np.max(Effect_A)
+eff_max_b = np.max(Effect_B)
+
+eff_min_a = np.min(Effect_A)
+eff_min_b = np.min(Effect_B)
+
+eff_max = np.max(Effect)
+
+print(eff_max)
+
+c_a = eff_max_a/eff_min_a
+c_b = eff_max_b /eff_min_b
+
+
+print(c_a)
+print(c_b)
+
+exit()
 
 zeros_A = np.zeros((Dose_A.shape))
 zeros_B = np.zeros((Dose_B.shape))
@@ -436,6 +457,10 @@ def marginal_samples(step_size,leap_frog, samples, parameters, y_axis_label):
 
     df = pd.DataFrame(res)
     df.columns = ['parameter','MAP','hpd_l', 'hpd_u']
+    df['MAP'] = df['MAP'].astype(float).round(2)
+    df['hpd_l'] = df['hpd_l'].astype(float).round(2)
+    df['hpd_u'] = df['hpd_u'].astype(float).round(2)
+    print(df)
 
     print(df)
     df = df.round(2)
