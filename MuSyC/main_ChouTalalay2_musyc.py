@@ -8,6 +8,8 @@ from synergy.utils import plots
 from synergy.utils.dose_tools import grid
 import numpy as np
 
+np.random.seed(100)
+
 df = pd.read_csv("../data/Yonetani2_weighted.csv")
 
 df['Effect'] = df['Effect']/1000.0

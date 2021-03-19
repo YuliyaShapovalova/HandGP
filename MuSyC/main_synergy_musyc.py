@@ -8,6 +8,8 @@ from synergy.utils import plots
 from synergy.utils.dose_tools import grid
 import numpy as np
 
+np.random.seed(100)
+
 df = pd.read_csv("../data/LA_synergy.csv")
 
 A_max = np.max(df['DRUG_A'].to_numpy())

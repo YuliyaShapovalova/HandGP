@@ -8,6 +8,8 @@ from synergy.utils import plots
 from synergy.utils.dose_tools import grid
 import numpy as np
 
+np.random.seed(100)
+
 '''
 We fit MuSyC model on Greco data
 '''
