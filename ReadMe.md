@@ -6,16 +6,12 @@ Predicting synergism using Gaussian processes and Hand principle.
 
 This is supplementary code for the 2021 paper:
 
-@article{shapovalova2021,
-
+@article{shapovalova2021non,
   title={Non-parametric synergy modeling with Gaussian processes},
-  
-  author={Shapovalova, Yuliya and Heskes, Tom and Dijkstra, Tjeerd},
-  
-  journal={},
-  
-  year={}
-  
+  author={Shapovalova, Yuliya and Heskes, Tom and Dijkstra, Tjeerd MH},
+  journal={bioRxiv},
+  year={2021},
+  publisher={Cold Spring Harbor Laboratory}
 }
 
 ## Dependencies
