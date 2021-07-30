@@ -1,6 +1,6 @@
 # HandGP
 
-Predicting synergism using Gaussian processes and Hand principle.
+Predicting synergism of chemical compounds using Gaussian processes and Hand principle.
 
 ## Citation
 

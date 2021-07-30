@@ -22,7 +22,7 @@ import pymc3
 
 np.set_printoptions(suppress=True)
 
-from utilities import (compute_prior_hyperparameters, trapezoidal_area, predict_in_observations, fit_Hand, y_exp_Hand, K_multiplicative)
+from utilities import (predict_in_observations_lower, predict_in_observations_upper, compute_prior_hyperparameters, trapezoidal_area, predict_in_observations, fit_Hand, y_exp_Hand, K_multiplicative)
 
 f64 = gpflow.utilities.to_default_float
 
@@ -206,6 +206,17 @@ dim2_B = mean2.loc[:][0].to_numpy()
 dim2_A = mean_full_est.iloc[0].to_numpy()
 dim2_B = mean_full_est.loc[:][0].to_numpy()
 
+#dim2_A = mean_full_est.iloc[0].to_numpy()
+#dim2_B = mean_full_est.loc[:][0].to_numpy()
+
+dim2_A_lower = mean_full_est.loc[0].to_numpy() - 1.96 * np.sqrt(Cov_full_est.loc[0]).to_numpy()
+dim2_B_lower = mean_full_est.iloc[:,0].to_numpy() - 1.96 * np.sqrt(Cov_full_est.iloc[:,0]).to_numpy()
+
+dim2_A_upper = mean_full_est.loc[0].to_numpy() + 1.96 * np.sqrt(Cov_full_est.loc[0]).to_numpy()
+dim2_B_upper = mean_full_est.iloc[:,0].to_numpy() + 1.96 * np.sqrt(Cov_full_est.iloc[:,0]).to_numpy()
+
+
+
 data = pd.concat([pd.DataFrame(Dose_AB), pd.DataFrame(Effect)], axis=1)
 data.columns = ['Dose_A', 'Dose_B', 'Effect']
 
@@ -249,20 +260,43 @@ df2.to_csv('../data/TestData2'+str(drug_name)+'_new'+'.csv')
 ############################################################################
 
 Y_expected_Hand = fit_Hand(X1, X2, dim2_A, dim2_B, Dose_A, Dose_B)
+
+Y_expected_Hand_lower = fit_Hand(X1, X2, dim2_A_lower, dim2_B_lower, Dose_A, Dose_B)
+
+Y_expected_Hand_upper = fit_Hand(X1, X2, dim2_A_upper, dim2_B_upper, Dose_A, Dose_B)
+
 Y_expected_Hand_check = fit_Hand(X2, X1, dim2_B, dim2_A, Dose_B, Dose_A)
 
 mean_full, Cov_full = predict_in_observations(X1, X2, m)
 
+mean_full_lower, Cov_full_lower = predict_in_observations_lower(X1, X2, m)
+
+mean_full_upper, Cov_full_upper = predict_in_observations_upper(X1, X2, m)
+
+
+xv, yv = np.meshgrid(X1, X2)
+
 [Xi, Xj] = np.meshgrid(X1,X2)
 
 xyz_full = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), mean_full.reshape(-1,1)),axis=1)
-Volume_full = trapezoidal_area(xyz_full)
+xyz_full_lower = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), mean_full_lower.reshape(-1,1)),axis=1)
+xyz_full_upper = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), mean_full_upper.reshape(-1,1)),axis=1)
 
+Volume_full = trapezoidal_area(xyz_full)
+Volume_full_lower = trapezoidal_area(xyz_full_lower)
+Volume_full_upper = trapezoidal_area(xyz_full_upper)
 
 xyz_null = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), Y_expected_Hand.reshape(-1,1)),axis=1)
+xyz_null_lower = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), Y_expected_Hand_lower.reshape(-1,1)),axis=1)
+xyz_null_upper = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), Y_expected_Hand_upper.reshape(-1,1)),axis=1)
+
 Volume_null = trapezoidal_area(xyz_null)
+Volume_null_lower = trapezoidal_area(xyz_null_lower)
+Volume_null_upper = trapezoidal_area(xyz_null_upper)
 
 print('Volume difference', Volume_full-Volume_null)
+print('Volume difference lower', Volume_full_lower-Volume_null_lower)
+print('Volume difference upper', Volume_full_upper-Volume_null_upper)
 
 xv, yv = np.meshgrid(X1, X2)
 #result = np.concatenate((xv.reshape(-1,1), yv.reshape(-1,1), (Y_expected_Hand - mean_full).reshape(-1,1)), axis = 1)
@@ -325,6 +359,9 @@ plt.ylabel('log($x_2$/$l_2$+1)', fontsize=15)
 #plt.title("Hand-GP estimated effect", fontsize=20)
 plt.savefig('figures/LA_antagonism/'+str(drug_name)+'contour_result'+'.png', bbox_inches = 'tight',
     pad_inches = 0)
+
+
+exit()
 
 fig, ax = plt.subplots(figsize=(6,6))
 #ax.set_aspect('equal')

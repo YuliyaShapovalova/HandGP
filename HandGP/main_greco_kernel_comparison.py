@@ -57,17 +57,13 @@ eff_min_b = np.min(Effect_B)
 
 eff_max = np.max(Effect)
 
-print(eff_max)
-
 c_a = eff_max_a/eff_min_a
 c_b = eff_max_b /eff_min_b
-
 
 alphaA, betaA = compute_prior_hyperparameters(A_max/c_a, 0.1*A_max/c_a)
 alphaB, betaB = compute_prior_hyperparameters(B_max/c_b, 0.1*B_max/c_b)
 
 alpha_var, beta_var = compute_prior_hyperparameters(eff_max, 0.1*eff_max)
-
 
 data = pd.concat([pd.DataFrame(Dose_AB), pd.DataFrame(Effect)], axis=1)
 data.columns = ['Dose_A', 'Dose_B', 'Effect']
@@ -118,7 +114,6 @@ for i in range(1,100):
         opt_logs = opt.minimize(m_full.training_loss,
                                 m_full.trainable_variables,method='BFGS',
                                 options=dict(maxiter=100))
-        #print_summary(m_full)
         Lik_full[i,0] = np.asarray(m_full.training_loss())
     except:
         Lik_full[i,0] = 'NaN'
@@ -219,7 +214,7 @@ xx_A = np.linspace(np.min(Dose_A), np.max(Dose_A),  num_predict).reshape(num_pre
 xx_B = np.linspace(np.min(Dose_B), np.max(Dose_B),  num_predict).reshape( num_predict, 1)
 
 ## plot
-plt.figure(figsize=(12, 6))
+plt.figure(figsize=(12, 10))
 plt.plot(np.log(Dose_A/m_full.kernel.lengthscale_da.value()+1), Effect_A, "kx", mew=2)
 plt.plot(np.log(xx_A/m_full.kernel.lengthscale_da.value()+1), mean_full_est.loc[0],"C0", lw=2, color='purple')
 plt.fill_between(
@@ -229,14 +224,15 @@ plt.fill_between(
     color="purple",
     alpha=0.2
 )
-plt.ylabel('Response', fontsize=20)
-plt.xlabel('$log(x_1/l_1)$', fontsize=20)
+plt.ylabel('Response', fontsize=40)
+plt.xlabel('$log(x_1/l_1+1)$', fontsize=40)
+plt.tick_params(axis='both', which='major', labelsize=40)
 #plt.title('Dose-response curve')
-plt.savefig('figures/KernelComparison/Greco'+'DrugA_in_log'+'.png')
+plt.savefig('figures/KernelComparison/Greco'+'DrugA_in_log'+'.png', bbox_inches="tight")
 
 
 ## plot
-plt.figure(figsize=(12, 6))
+plt.figure(figsize=(12, 10))
 plt.plot(np.log(Dose_B/m_full.kernel.lengthscale_db.value()+1), Effect_B, "kx", mew=2)
 plt.plot(np.log(xx_B/m_full.kernel.lengthscale_db.value()+1), mean_full_est.iloc[:,0],"C0", lw=2, color='purple')
 plt.fill_between(
@@ -246,9 +242,10 @@ plt.fill_between(
     color="purple",
     alpha=0.2
 )
-plt.ylabel('Response', fontsize=20)
-plt.xlabel('$log(x_2/l_2+1)$', fontsize=20)
-plt.savefig('figures/KernelComparison/Greco'+'DrugB_in_log'+'.png')
+plt.ylabel('Response', fontsize=40)
+plt.xlabel('$log(x_2/l_2+1)$', fontsize=40)
+plt.tick_params(axis='both', which='major', labelsize=40)
+plt.savefig('figures/KernelComparison/Greco'+'DrugB_in_log'+'.png', bbox_inches="tight")
 
 data = pd.concat([pd.DataFrame(Dose_AB), pd.DataFrame(Effect)], axis=1)
 data.columns = ['Dose_A', 'Dose_B', 'Effect']
@@ -385,7 +382,7 @@ Cov_rbf_est = pd.DataFrame(Cov2_rbf.reshape(Xi.shape))
 xx_A = np.linspace(np.min(Dose_A), np.max(Dose_A),  num_predict).reshape(num_predict, 1)
 xx_B = np.linspace(np.min(Dose_B), np.max(Dose_B),  num_predict).reshape( num_predict, 1)
 ## plot
-plt.figure(figsize=(12, 6))
+plt.figure(figsize=(12, 10))
 plt.plot(Dose_A/m_rbf.kernel.kernels[0].lengthscales.value(), Effect_A, "kx", mew=2)
 plt.plot(xx_A/m_rbf.kernel.kernels[0].lengthscales.value(), mean_rbf_est.loc[0],"C0", lw=2, color='purple')
 plt.fill_between(
@@ -396,13 +393,13 @@ plt.fill_between(
     alpha=0.2
 )
 #plt.title('Dose-response curve')
-plt.ylabel('Response', fontsize=20)
-plt.xlabel('$x_1/l_1$', fontsize=20)
-plt.tick_params(axis='both', which='major', labelsize=15)
-plt.savefig('figures/KernelComparison/Greco'+'DrugA_rbf'+'.png')
+plt.ylabel('Response', fontsize=40)
+plt.xlabel('$x_1/l_1$', fontsize=40)
+plt.tick_params(axis='both', which='major', labelsize=40)
+plt.savefig('figures/KernelComparison/Greco'+'DrugA_rbf'+'.png', bbox_inches="tight")
 
 ## plot
-plt.figure(figsize=(12, 6))
+plt.figure(figsize=(12, 10))
 plt.plot(Dose_B/m_rbf.kernel.kernels[1].lengthscales.value(), Effect_B, "kx", mew=2)
 plt.plot(xx_B/m_rbf.kernel.kernels[1].lengthscales.value(), mean_rbf_est.iloc[:,0],"C0", lw=2, color='purple')
 plt.fill_between(
@@ -412,10 +409,10 @@ plt.fill_between(
     color="purple",
     alpha=0.2
 )
-plt.ylabel('Response', fontsize=20)
-plt.xlabel('$x_2/l_2$', fontsize=20)
-plt.tick_params(axis='both', which='major', labelsize=15)
-plt.savefig('figures/KernelComparison/Greco'+'DrugB_rbf'+'.png')
+plt.ylabel('Response', fontsize=35)
+plt.xlabel('$x_2/l_2$', fontsize=35)
+plt.tick_params(axis='both', which='major', labelsize=30)
+plt.savefig('figures/KernelComparison/Greco'+'DrugB_rbf'+'.png', bbox_inches="tight")
 
 
 data = pd.concat([pd.DataFrame(Dose_AB), pd.DataFrame(Effect)], axis=1)

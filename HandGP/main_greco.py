@@ -22,7 +22,7 @@ from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import pymc3
 
-from utilities import (trapezoidal_area, compute_prior_hyperparameters,  predict_in_observations, fit_Hand, y_exp_Hand, y_exp, find_nearest, K_log, K_multiplicative)
+from utilities import (predict_in_observations_lower, predict_in_observations_upper, trapezoidal_area, compute_prior_hyperparameters,  predict_in_observations, fit_Hand, y_exp_Hand, y_exp, find_nearest, K_log, K_multiplicative)
 
 f64 = gpflow.utilities.to_default_float
 
@@ -280,6 +280,12 @@ plt.savefig('figures/Greco/Greco'+'DrugB'+'.png')
 dim2_A = mean_full_est.iloc[0].to_numpy()
 dim2_B = mean_full_est.loc[:][0].to_numpy()
 
+dim2_A_lower = mean_full_est.loc[0].to_numpy() - 1.96 * np.sqrt(Cov_full_est.loc[0]).to_numpy()
+dim2_B_lower = mean_full_est.iloc[:,0].to_numpy() - 1.96 * np.sqrt(Cov_full_est.iloc[:,0]).to_numpy()
+
+dim2_A_upper = mean_full_est.loc[0].to_numpy() + 1.96 * np.sqrt(Cov_full_est.loc[0]).to_numpy()
+dim2_B_upper = mean_full_est.iloc[:,0].to_numpy() + 1.96 * np.sqrt(Cov_full_est.iloc[:,0]).to_numpy()
+
 data = pd.concat([pd.DataFrame(Dose_AB), pd.DataFrame(Effect)], axis=1)
 data.columns = ['Dose_A', 'Dose_B', 'Effect']
 
@@ -290,30 +296,64 @@ X2 = data[data['Dose_A']==0]['Dose_B'].to_numpy().reshape(-1,1).astype(float)
 Y2 = data[data['Dose_A']==0]['Effect'].to_numpy().reshape(-1,1).astype(float)
 
 Y_expected_Hand = fit_Hand(X1, X2, dim2_A, dim2_B, Dose_A, Dose_B)
+
+Y_expected_Hand_lower = fit_Hand(X1, X2, dim2_A_lower, dim2_B_lower, Dose_A, Dose_B)
+
+Y_expected_Hand_upper = fit_Hand(X1, X2, dim2_A_upper, dim2_B_upper, Dose_A, Dose_B)
+
 Y_expected_Hand_check = fit_Hand(X2, X1, dim2_B, dim2_A, Dose_B, Dose_A)
 
 mean_full, Cov_full = predict_in_observations(X1, X2, m_full)
 
+mean_full_lower, Cov_full_lower = predict_in_observations_lower(X1, X2, m_full)
+
+mean_full_upper, Cov_full_upper = predict_in_observations_upper(X1, X2, m_full)
+
+
 [Xi, Xj] = np.meshgrid(X1,X2)
 
 xyz_full = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), mean_full.reshape(-1,1)),axis=1)
+xyz_full_lower = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), mean_full_lower.reshape(-1,1)),axis=1)
+xyz_full_upper = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), mean_full_upper.reshape(-1,1)),axis=1)
+
 Volume_full = trapezoidal_area(xyz_full)
+Volume_full_lower = trapezoidal_area(xyz_full_lower)
+Volume_full_upper = trapezoidal_area(xyz_full_upper)
 
 xyz_null = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), Y_expected_Hand.reshape(-1,1)),axis=1)
+xyz_null_lower = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), Y_expected_Hand_lower.reshape(-1,1)),axis=1)
+xyz_null_upper = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), Y_expected_Hand_upper.reshape(-1,1)),axis=1)
+
 Volume_null = trapezoidal_area(xyz_null)
+Volume_null_lower = trapezoidal_area(xyz_null_lower)
+Volume_null_upper = trapezoidal_area(xyz_null_upper)
 
 print('Volume difference', Volume_null-Volume_full)
+print('Volume difference lower', Volume_null_lower-Volume_full_lower)
+print('Volume difference upper', Volume_null_upper-Volume_full_upper)
 
 xv, yv = np.meshgrid(X1, X2)
 result = np.concatenate((xv.reshape(-1,1), yv.reshape(-1,1), (Y_expected_Hand - mean_full).reshape(-1,1)), axis = 1)
+result_lower = np.concatenate((xv.reshape(-1,1), yv.reshape(-1,1), (Y_expected_Hand_lower - mean_full).reshape(-1,1)), axis = 1)
+result_upper = np.concatenate((xv.reshape(-1,1), yv.reshape(-1,1), (Y_expected_Hand_upper - mean_full).reshape(-1,1)), axis = 1)
 
+df = pd.DataFrame(result)
+df.to_csv("results/Greco/results_Greco.csv")
+
+df_lower = pd.DataFrame(result_lower)
+df_lower.to_csv("results/Greco/results_Greco_lower.csv")
+
+df_upper = pd.DataFrame(result_upper)
+df_upper.to_csv("results/Greco/results_Greco_upper.csv")
+
+exit()
 xx_a = np.linspace(np.min(Dose_A), np.max(Dose_A), dim2_A.shape[0]).reshape(-1,1)
 xx_b = np.linspace(np.min(Dose_B), np.max(Dose_B), dim2_B.shape[0]).reshape(-1,1)
 
 fig, ax = plt.subplots(figsize=(6,6))
 fig.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.8)
 #ax.set_aspect('equal')
-v = np.linspace(-10, 15, 11, endpoint=True)
+v = np.linspace(-10, 20, 11, endpoint=True)
 cf = ax.contourf(Dose_A.flatten(), Dose_B.flatten(), Y_expected_Hand - mean_full,v,cmap='RdYlGn')
 cbar = fig.colorbar(cf, ax=ax)
 
@@ -326,6 +366,42 @@ plt.xlabel('$x_1$', fontsize=20)
 plt.ylabel('$x_2$', fontsize=20)
 #plt.title("Hand-GP estimated effect", fontsize=20)
 plt.savefig('figures/Greco/Greco_contour_result'+'.png',bbox_inches = 'tight',
+    pad_inches = 0)
+
+fig, ax = plt.subplots(figsize=(6,6))
+fig.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.8)
+#ax.set_aspect('equal')
+v = np.linspace(-10, 20, 11, endpoint=True)
+cf = ax.contourf(Dose_A.flatten(), Dose_B.flatten(), Y_expected_Hand_upper - mean_full_upper,v,cmap='RdYlGn')
+cbar = fig.colorbar(cf, ax=ax)
+
+plt.tick_params(axis='x', labelsize=15)
+plt.tick_params(axis='y', labelsize=15)
+
+for t in cbar.ax.get_yticklabels():
+     t.set_fontsize(15)
+plt.xlabel('$x_1$', fontsize=20)
+plt.ylabel('$x_2$', fontsize=20)
+#plt.title("Hand-GP estimated effect", fontsize=20)
+plt.savefig('figures/Greco/Greco_contour_result_upper'+'.png',bbox_inches = 'tight',
+    pad_inches = 0)
+
+fig, ax = plt.subplots(figsize=(6,6))
+fig.subplots_adjust(left=0.15, bottom=0.15, right=0.95, top=0.8)
+#ax.set_aspect('equal')
+v = np.linspace(-10, 20, 11, endpoint=True)
+cf = ax.contourf(Dose_A.flatten(), Dose_B.flatten(), Y_expected_Hand_lower - mean_full_lower,v,cmap='RdYlGn')
+cbar = fig.colorbar(cf, ax=ax)
+
+plt.tick_params(axis='x', labelsize=15)
+plt.tick_params(axis='y', labelsize=15)
+
+for t in cbar.ax.get_yticklabels():
+     t.set_fontsize(15)
+plt.xlabel('$x_1$', fontsize=20)
+plt.ylabel('$x_2$', fontsize=20)
+#plt.title("Hand-GP estimated effect", fontsize=20)
+plt.savefig('figures/Greco/Greco_contour_result_lower'+'.png',bbox_inches = 'tight',
     pad_inches = 0)
 
 fig, ax = plt.subplots(figsize=(6,6))
@@ -414,7 +490,6 @@ plt.savefig('figures/Greco/Greco_GP_residuals'+'.png',bbox_inches = 'tight',
     pad_inches = 0)
 
 print('MSE total',np.sum((mean_full.flatten()-Effect.reshape(6,6).T.flatten())**2)/(len(mean_full.flatten())))
-
 
 mean_full = pd.DataFrame(mean_full)
 Cov_full = pd.DataFrame(Cov_full)

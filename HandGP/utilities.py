@@ -55,13 +55,44 @@ def predict_in_observations(X1, X2, m_full):
     mean2_full = np.asarray(mean2_full)
     Cov2_full = np.asarray(Cov2_full)
 
+    return  mean2_full.reshape(Xj.shape), Cov2_full.reshape(Xj.shape)
+
+def predict_in_observations_lower(X1, X2, m_full):
+    #[Xi, Xj] = np.meshgrid(X1, X2)
+    [Xi, Xj] = np.meshgrid(X1,X2)
+
+    # We need to augument our test space to be a list of coordinates for input to the GP
+    Xnew2 = np.vstack((Xi.ravel(), Xj.ravel())).T # Change our input grid to list of coordinates
+
+    # Predict the mean and covariance of the GP fit at the test locations
+    mean2_full, Cov2_full = m_full.predict_f(Xnew2)
+
+    mean2_full = np.asarray(mean2_full)
+    Cov2_full = np.asarray(Cov2_full)
+
+    return  mean2_full.reshape(Xi.shape), Cov2_full.reshape(Xi.shape)
+
+def predict_in_observations_upper(X1, X2, m_full):
+    #[Xi, Xj] = np.meshgrid(X1, X2)
+    [Xi, Xj] = np.meshgrid(X1,X2)
+
+    # We need to augument our test space to be a list of coordinates for input to the GP
+    Xnew2 = np.vstack((Xi.ravel(), Xj.ravel())).T # Change our input grid to list of coordinates
+
+    # Predict the mean and covariance of the GP fit at the test locations
+    mean2_full, Cov2_full = m_full.predict_f(Xnew2)
+
+    mean2_full = np.asarray(mean2_full)
+    Cov2_full = np.asarray(Cov2_full)
+
     return  mean2_full.reshape(Xi.shape), Cov2_full.reshape(Xi.shape)
 
 
 def fit_Hand(X1, X2, dim2_A, dim2_B, Dose_A, Dose_B):
-    Y_expected_Hand = np.zeros((X1.shape[0],X1.shape[0]))
 
     xv, yv = np.meshgrid(X1, X2)
+
+    Y_expected_Hand = np.zeros(xv.shape)
 
     mean1 =  dim2_A.copy().reshape(-1,1)
     mean2 =  dim2_B.copy().reshape(-1,1)
@@ -69,8 +100,8 @@ def fit_Hand(X1, X2, dim2_A, dim2_B, Dose_A, Dose_B):
     xx2 = np.linspace(np.min(Dose_B), np.max(Dose_B), mean2.shape[0]).reshape(-1,1)
 
     # new based on 2D
-    for i in range(0,X1.shape[0]):
-        for j in range(0,X1.shape[0]):
+    for i in range(0,xv.shape[0]):
+        for j in range(0,xv.shape[1]):
             Y_expected_Hand[i,j] = y_exp_Hand(xv[i,j], yv[i,j], mean1, xx1, mean2, xx2)
 
     return Y_expected_Hand

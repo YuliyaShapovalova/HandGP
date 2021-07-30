@@ -22,7 +22,7 @@ import pymc3
 
 np.set_printoptions(suppress=True)
 
-from utilities import (compute_prior_hyperparameters, trapezoidal_area, predict_in_observations, fit_Hand, K_multiplicative)
+from utilities import (predict_in_observations_lower, predict_in_observations_upper, compute_prior_hyperparameters, trapezoidal_area, predict_in_observations, fit_Hand, K_multiplicative)
 
 f64 = gpflow.utilities.to_default_float
 
@@ -188,8 +188,8 @@ plt.fill_between(
     alpha=0.2
 )
 
-plt.xlabel('$x_1$', fontsize=20)
-plt.ylabel('Response', fontsize=20)
+plt.xlabel('ADP', fontsize=20)
+plt.ylabel('The fractional velocity', fontsize=20)
 plt.ylim(0.0, 1.1)
 plt.tick_params(axis='both', which='major', labelsize=20)
 plt.savefig('figures/ChouTalalay2/'+drug_name+'_DrugA'+'.png')
@@ -206,15 +206,20 @@ plt.fill_between(
     alpha=0.2
 )
 
-plt.xlabel('$x_2$', fontsize=20)
-plt.ylabel('Response', fontsize=20)
+plt.xlabel('Phen', fontsize=20)
+plt.ylabel('The fractional velocity', fontsize=20)
 plt.ylim(0.0, 1.1)
 plt.tick_params(axis='both', which='major', labelsize=20)
 plt.savefig('figures/ChouTalalay2/'+drug_name+'_DrugB'+'.png')
 
-
 dim2_A = mean2.iloc[0].to_numpy()
 dim2_B = mean2.loc[:][0].to_numpy()
+
+dim2_A_lower = mean2.loc[0].to_numpy() - 1.96 * np.sqrt(Cov2.loc[0]).to_numpy()
+dim2_B_lower = mean2.iloc[:,0].to_numpy() - 1.96 * np.sqrt(Cov2.iloc[:,0]).to_numpy()
+
+dim2_A_upper = mean2.loc[0].to_numpy() + 1.96 * np.sqrt(Cov2.loc[0]).to_numpy()
+dim2_B_upper = mean2.iloc[:,0].to_numpy() + 1.96 * np.sqrt(Cov2.iloc[:,0]).to_numpy()
 
 Effect = df['FracInhib'].values.reshape(-1,1).copy()
 Dose_A = df['Conc.ADP'].values.astype(float).copy()
@@ -236,20 +241,43 @@ X2 = data[data['Dose_A']==0]['Dose_B'].to_numpy().reshape(-1,1).astype(float)
 Y2 = data[data['Dose_A']==0]['Effect'].to_numpy().reshape(-1,1).astype(float)
 
 Y_expected_Hand = fit_Hand(X1, X2, dim2_A, dim2_B, Dose_A, Dose_B)
+
+Y_expected_Hand_lower = fit_Hand(X1, X2, dim2_A_lower, dim2_B_lower, Dose_A, Dose_B)
+
+Y_expected_Hand_upper = fit_Hand(X1, X2, dim2_A_upper, dim2_B_upper, Dose_A, Dose_B)
+
 Y_expected_Hand_check = fit_Hand(X2, X1, dim2_B, dim2_A, Dose_B, Dose_A)
 
 mean_full, Cov_full = predict_in_observations(X1, X2, m)
 
+mean_full_lower, Cov_full_lower = predict_in_observations_lower(X1, X2, m)
+
+mean_full_upper, Cov_full_upper = predict_in_observations_upper(X1, X2, m)
+
+
+xv, yv = np.meshgrid(X1, X2)
+
 [Xi, Xj] = np.meshgrid(X1,X2)
 
 xyz_full = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), mean_full.reshape(-1,1)),axis=1)
-Volume_full = trapezoidal_area(xyz_full)
+xyz_full_lower = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), mean_full_lower.reshape(-1,1)),axis=1)
+xyz_full_upper = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), mean_full_upper.reshape(-1,1)),axis=1)
 
+Volume_full = trapezoidal_area(xyz_full)
+Volume_full_lower = trapezoidal_area(xyz_full_lower)
+Volume_full_upper = trapezoidal_area(xyz_full_upper)
 
 xyz_null = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), Y_expected_Hand.reshape(-1,1)),axis=1)
-Volume_null = trapezoidal_area(xyz_null)
+xyz_null_lower = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), Y_expected_Hand_lower.reshape(-1,1)),axis=1)
+xyz_null_upper = np.concatenate((Xi.reshape(-1,1), Xj.reshape(-1,1), Y_expected_Hand_upper.reshape(-1,1)),axis=1)
 
-#print(Volume_null-Volume_full)
+Volume_null = trapezoidal_area(xyz_null)
+Volume_null_lower = trapezoidal_area(xyz_null_lower)
+Volume_null_upper = trapezoidal_area(xyz_null_upper)
+
+print('Volume difference', Volume_null-Volume_full)
+print('Volume difference lower', Volume_null_lower-Volume_full_lower)
+print('Volume difference upper', Volume_null_upper-Volume_full_upper)
 
 xv, yv = np.meshgrid(X1, X2)
 #result = np.concatenate((xv.reshape(-1,1), yv.reshape(-1,1), (Y_expected_Hand - mean_full).reshape(-1,1)), axis = 1)
@@ -344,7 +372,6 @@ data = {'drug1.conc':  [0.5, 1.0, 1.5, 2.0, 2.5],
 
 df_diagonal = pd.DataFrame (data, columns = ['drug1.conc','drug2.conc','effect'])
 
-# The doses on the diagonal 
 x = np.linspace(0.0,2.5,100)
 y = 17.4 * x
 
@@ -358,29 +385,33 @@ plt.figure(figsize=(12, 6))
 plt.plot(np.asarray(np.sqrt(x**2+y**2)).flatten(), np.asarray(mean2).flatten(), "r", mew=2)
 plt.plot(np.sqrt(df_diagonal['drug1.conc']**2+df_diagonal['drug2.conc']**2), df_diagonal['effect'], "kx", lw=2)
 #plt.ylim((0.0, 1.0))
-plt.xlabel('Diagonal combination of the doses', fontsize=20)
-plt.ylabel('Response', fontsize=20)
+plt.xlabel('Diagonal combination of ADP and Phen', fontsize=20)
+plt.ylabel('The fractional velocity', fontsize=20)
 #plt.title('Diagonal slice of the GP surface', fontsize=20)
 plt.tick_params(axis='both', which='major', labelsize=20)
 plt.savefig('figures/ChouTalalay2/ChouTalalay2_GP'+'_diagonal'+'.png')
 
 f1 = interp1d(np.sqrt(X1**2+X2**2).flatten(), np.asarray(np.diag(Y_expected_Hand)).flatten(), kind='quadratic')
+f1_lower = interp1d(np.sqrt(X1**2+X2**2).flatten(), np.asarray(np.diag(Y_expected_Hand_lower)).flatten(), kind='quadratic')
+f1_upper = interp1d(np.sqrt(X1**2+X2**2).flatten(), np.asarray(np.diag(Y_expected_Hand_upper)).flatten(), kind='quadratic')
 
 xnew = np.asarray(np.sqrt(df_diagonal['drug1.conc']**2+df_diagonal['drug2.conc']**2)).flatten()
 xnew = np.asarray(np.sqrt(Xnew2[:,0]**2+Xnew2[:,1]**2)).flatten()
 
 plt.figure(figsize=(12, 6))
-plt.plot(xnew, f1(xnew), "grey", mew=2, label='Null')
-plt.plot(np.asarray(np.sqrt(Xnew2[:,0]**2+Xnew2[:,1]**2)).flatten(), np.asarray(mean2).flatten(), "purple", mew=2,label='Unconstrained')
+plt.plot(xnew, f1(xnew), "grey", mew=2, label='Null (HandGP)')
+plt.plot(np.asarray(np.sqrt(Xnew2[:,0]**2+Xnew2[:,1]**2)).flatten(), np.asarray(mean2).flatten(), "purple", mew=2,label='Regular GP fit')
 plt.plot(np.sqrt(df_diagonal['drug1.conc']**2+df_diagonal['drug2.conc']**2), df_diagonal['effect'], "kx", lw=2)
-plt.xlabel('Diagonal combination of the doses', fontsize=20)
-plt.ylabel('Response', fontsize=20)
+plt.xlabel('Diagonal combination of ADP and Phen', fontsize=20)
+plt.ylabel('The fractional velocity', fontsize=20)
 plt.tick_params(axis='both', which='major', labelsize=20)
 plt.legend( prop={'size': 20})
 plt.savefig('figures/ChouTalalay2/ChouTalalay2_GP'+'_diagonal_null'+'.png', bbox_inches = 'tight',
     pad_inches = 0)
 
 diagonal_difference =  f1(xnew) - np.asarray(mean2).flatten()
+diagonal_difference_lower =  f1_lower(xnew) - (np.asarray(mean2).flatten() - 1.96 * np.sqrt(np.asarray(Cov2).flatten()))
+diagonal_difference_upper =  f1_upper(xnew) - (np.asarray(mean2).flatten() + 1.96 * np.sqrt(np.asarray(Cov2).flatten()))
 
 length_diagonal = len(diagonal_difference)
 
@@ -389,13 +420,21 @@ xnew = (xnew - xnew.min())/(xnew.max()-xnew.min())
 plt.figure(figsize=(12, 6))
 plt.plot(np.asarray(mean2[::-1]).flatten()[0:9], diagonal_difference[0:9], "red", mew=2)
 plt.plot(np.asarray(mean2[::-1]).flatten()[8:length_diagonal], diagonal_difference[8:length_diagonal], "green", mew=2)
-
+plt.fill_between(
+    np.asarray(np.asarray(mean2[::-1]).flatten()),
+    diagonal_difference_lower,
+    diagonal_difference_upper,
+    color="green",
+    alpha=0.2
+)
 plt.xlabel('Fractional effect', fontsize=20)
 plt.ylim(-0.5,0.5)
 plt.ylabel('Difference', fontsize=20)
 plt.tick_params(axis='both', which='major', labelsize=20)
 plt.savefig('figures/ChouTalalay2/ChouTalalay2_GP'+'_diagonal_null_difference'+'.png', bbox_inches = 'tight',
     pad_inches = 0)
+
+exit()
 
 def plot_samples(step_size, num_leapfrog, samples, parameters, y_axis_label):
     fig, axes = plt.subplots(1, len(param_to_name), figsize=(15, 3), constrained_layout=True)
@@ -426,9 +465,7 @@ def marginal_samples(step_size,leap_frog, samples, parameters, y_axis_label):
     df['MAP'] = df['MAP'].astype(float).round(2)
     df['hpd_l'] = df['hpd_l'].astype(float).round(2)
     df['hpd_u'] = df['hpd_u'].astype(float).round(2)
-    print(df)
-
-    print(df)
+    #print(df)
     df = df.round(2)
     df.to_csv('results/ChouTalalay2/ChouTalalay2_hyperparameters'+str(step_size)+str(leap_frog)+'.csv')
 
