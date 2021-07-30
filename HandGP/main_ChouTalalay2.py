@@ -344,6 +344,7 @@ data = {'drug1.conc':  [0.5, 1.0, 1.5, 2.0, 2.5],
 
 df_diagonal = pd.DataFrame (data, columns = ['drug1.conc','drug2.conc','effect'])
 
+# The doses on the diagonal 
 x = np.linspace(0.0,2.5,100)
 y = 17.4 * x
 

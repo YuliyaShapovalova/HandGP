@@ -264,8 +264,6 @@ Volume_null = trapezoidal_area(xyz_null)
 
 print('Volume difference', Volume_full-Volume_null)
 
-exit()
-
 xv, yv = np.meshgrid(X1, X2)
 #result = np.concatenate((xv.reshape(-1,1), yv.reshape(-1,1), (Y_expected_Hand - mean_full).reshape(-1,1)), axis = 1)
 xx_a = np.linspace(np.min(Dose_A), np.max(Dose_A), dim2_A.shape[0]).reshape(-1,1)
